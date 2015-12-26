@@ -4,7 +4,7 @@ project(cnetpp)
 
 include_directories("${CMAKE_SOURCE_DIR}/src" )
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -pthread -std=c++11 -I./src/")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 file(GLOB HTTP_HEADER_FILES "src/http/*.h")
 file(GLOB HTTP_SOURCE_FILES "src/http/*.cc")
