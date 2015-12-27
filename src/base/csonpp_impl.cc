@@ -235,6 +235,11 @@ Value::Value(double value)
       double_(value) {
 }
 
+Value::Value(const char* value)
+    : type_(ValueType::kString),
+      string_(value) {
+}
+
 Value::Value(const std::string& value)
     : type_(ValueType::kString),
       string_(value) {
@@ -442,6 +447,12 @@ Value& Value::operator=(double value) {
   return *this;
 }
 
+Value& Value::operator=(const char* value) {
+  type_ = ValueType::kString;
+  string_ = value;
+  return *this;
+}
+
 Value& Value::operator=(const std::string& value) {
   type_ = ValueType::kString;
   string_ = value;
@@ -584,6 +595,16 @@ void Value::Append(const std::string& key, double value) {
 }
 
 void Value::Append(std::string&& key, double value) {
+  assert(type_ == ValueType::kObject);
+  object_[std::move(key)] = value;
+}
+
+void Value::Append(const std::string& key, const char* value) {
+  assert(type_ == ValueType::kObject);
+  object_[key] = value;
+}
+
+void Value::Append(std::string&& key, const char* value) {
   assert(type_ == ValueType::kObject);
   object_[std::move(key)] = value;
 }
