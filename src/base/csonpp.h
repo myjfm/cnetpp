@@ -168,6 +168,7 @@ class Value {
 	explicit Value(uint64_t value);
 	explicit Value(float value);
 	explicit Value(double value);
+  explicit Value(const char* value);
 	explicit Value(const std::string& value);
 	explicit Value(std::string&& value);
 	explicit Value(const Object& value);
@@ -193,6 +194,7 @@ class Value {
 	Value& operator=(uint64_t value);
 	Value& operator=(float value);
 	Value& operator=(double value);
+  Value& operator=(const char* value);
 	Value& operator=(const std::string& value);
 	Value& operator=(std::string&& value);
 	Value& operator=(const Object& value);
@@ -222,6 +224,8 @@ class Value {
   void Append(std::string&& key, float value);
   void Append(const std::string& key, double value);
   void Append(std::string&& key, double value);
+  void Append(const std::string& key, const char* value);
+  void Append(std::string&& key, const char* value);
   void Append(const std::string& key, const std::string& value);
   void Append(std::string&& key, const std::string& value);
   void Append(const std::string& key, std::string&& value);
