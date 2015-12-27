@@ -56,7 +56,8 @@ class TcpClient final {
   // connect with remote server
   // if keep local as nullptr, it will use one of local ip.
   ConnectionId Connect(const base::EndPoint* remote,
-                       const TcpClientOptions& options = TcpClientOptions());
+                       const TcpClientOptions& options = TcpClientOptions(),
+                       std::shared_ptr<void> cookie = nullptr);
 
   bool AsyncClosed(ConnectionId connection_id);
 

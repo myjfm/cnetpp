@@ -54,12 +54,9 @@ tcp::ConnectionId HttpClient::Connect(const base::EndPoint* remote,
         return this->OnSent(status, c);
       }
   );
-  auto connection_id = tcp_client_.Connect(remote, options);
-  if (connection_id == tcp::kInvalidConnectionId) {
-    return connection_id;
-  }
-  http_options_[connection_id] = http_options;
-  return connection_id;
+  std::shared_ptr<void> new_http_options =
+      std::shared_ptr<HttpOptions>(new HttpOptions(http_options));
+  return tcp_client_.Connect(remote, options, new_http_options);
 }
 
 bool HttpClient::AsyncClose(tcp::ConnectionId connection_id) {
@@ -68,14 +65,14 @@ bool HttpClient::AsyncClose(tcp::ConnectionId connection_id) {
 
 bool HttpClient::HandleConnected(
     std::shared_ptr<HttpConnection> http_connection) {
-  auto connection_id = http_connection->id();
-  auto itr = http_options_.find(connection_id);
-  assert(itr != http_options_.end());
-  http_connection->set_connected_callback(itr->second.connected_callback());
-  http_connection->set_closed_callback(itr->second.closed_callback());
-  http_connection->set_received_callback(itr->second.received_callback());
-  http_connection->set_sent_callback(itr->second.sent_callback());
-  http_connection->set_http_packet(std::shared_ptr<HttpPacket>(new HttpResponse));
+  auto http_options = std::static_pointer_cast<HttpOptions>(
+      http_connection->tcp_connection()->cookie());
+  http_connection->set_connected_callback(http_options->connected_callback());
+  http_connection->set_closed_callback(http_options->closed_callback());
+  http_connection->set_received_callback(http_options->received_callback());
+  http_connection->set_sent_callback(http_options->sent_callback());
+  http_connection->set_http_packet(
+      std::shared_ptr<HttpPacket>(new HttpResponse));
   return true;
 }
 

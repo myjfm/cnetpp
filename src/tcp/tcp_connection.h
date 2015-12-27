@@ -117,6 +117,13 @@ class TcpConnection : public ConnectionBase {
     received_callback_ = received_callback;
   }
 
+  std::shared_ptr<void> cookie() {
+    return cookie_;
+  }
+  void set_cookie(std::shared_ptr<void> cookie) {
+    cookie_ = cookie;
+  }
+
   bool SendPacket();
   bool SendPacket(base::StringPiece data);
 
@@ -150,6 +157,7 @@ class TcpConnection : public ConnectionBase {
   ClosedCallbackType closed_callback_ { nullptr };
   SentCallbackType sent_callback_ { nullptr };
   ReceivedCallbackType received_callback_ { nullptr };
+  std::shared_ptr<void> cookie_ { nullptr };
 };
 
 }  // namespace tcp

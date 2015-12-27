@@ -54,7 +54,6 @@ class HttpClient final : public HttpBase {
 
  private:
   tcp::TcpClient tcp_client_;
-  std::unordered_map<tcp::ConnectionId, HttpOptions> http_options_;
 
   bool DoShutdown() override {
     return tcp_client_.Shutdown();

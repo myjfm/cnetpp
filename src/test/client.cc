@@ -85,10 +85,12 @@ int main() {
     std::cout << "failed to launch the http_client" << std::endl;
     return 1;
   }
-  auto connection_id = http_client.Connect(&remote_end_point, http_options);
-  if (connection_id < 0) {
-    std::cout << "failed to connect to the server" << std::endl;
-    return 1;
+  for (auto i = 0; i < 10; ++i) {
+    auto connection_id = http_client.Connect(&remote_end_point, http_options);
+    if (connection_id < 0) {
+      std::cout << "failed to connect to the server" << std::endl;
+      return 1;
+    }
   }
 
   sleep(10);

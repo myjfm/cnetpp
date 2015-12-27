@@ -52,7 +52,8 @@ bool TcpClient::Shutdown() {
 }
 
 ConnectionId TcpClient::Connect(const base::EndPoint* remote,
-                                const TcpClientOptions& options) {
+                                const TcpClientOptions& options,
+                                std::shared_ptr<void> cookie) {
   assert(remote);
 
   base::TcpSocket socket;
@@ -75,7 +76,10 @@ ConnectionId TcpClient::Connect(const base::EndPoint* remote,
   auto tcp_connection = std::dynamic_pointer_cast<TcpConnection>(connection);
   tcp_connection->SetSendBufferSize(options.send_buffer_size());
   tcp_connection->SetRecvBufferSize(options.receive_buffer_size());
+  tcp_connection->set_cookie(cookie);
+  std::unique_lock<std::mutex> guard(contexts_mutex_);
   contexts_[connection->id()] = cc;
+  guard.unlock();
 
   tcp_connection->set_connected_callback(
       [this] (std::shared_ptr<TcpConnection> c) -> bool {
