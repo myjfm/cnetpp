@@ -2,13 +2,13 @@
 
 #include <iostream>
 
-#include "../base/end_point.h"
-#include "../base/ip_address.h"
-#include "../http/http_connection.h"
-#include "../http/http_request.h"
-#include "../http/http_response.h"
-#include "../http/http_server.h"
-#include "../base/string_utils.h"
+#include "base/end_point.h"
+#include "base/ip_address.h"
+#include "http/http_connection.h"
+#include "http/http_request.h"
+#include "http/http_response.h"
+#include "http/http_server.h"
+#include "base/string_utils.h"
 
 class HttpServerHandler final {
  public:
