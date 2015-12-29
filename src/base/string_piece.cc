@@ -52,7 +52,7 @@ bool operator==(const StringPiece& x, const StringPiece& y) {
   if (!x.data() || !y.data()) {
     return false;
   }
-  return ((x.size() == y.size()) && !::memcmp(x.data(), y.data(), x.size()));
+  return ((x.size() == y.size()) && (x.data() == y.data() || !::memcmp(x.data(), y.data(), x.size())));
 }
 
 int StringPiece::compare(const StringPiece& x) const {

@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <base/csonpp.h>
+#include <base/string_piece.h>
 #include <string>
 using namespace std;
 using namespace cnetpp::base;
@@ -44,4 +45,12 @@ TEST(Value, AssignTest)
 	v = "hello";
 	ASSERT_EQ(v.Type(), Value::ValueType::kString);
 	ASSERT_EQ(v.GetString(), "hello");
+}
+
+TEST(StringPiece, MiscTest)
+{
+	StringPiece str((const char*)NULL, 0);
+	string s;
+	str.copy_to_string(&s);
+	ASSERT_EQ(s, "");
 }

@@ -96,6 +96,7 @@ class StringPiece {
 
   StringPiece(const char* offset, size_t len)
       : ptr_(offset), len_(len) {
+	if(!offset) assert(!len);
   }
 
   StringPiece(const unsigned char* offset, size_t len)
@@ -119,6 +120,7 @@ class StringPiece {
     len_ = 0;
   }
   void set(const char* buffer, size_t len) {
+	if(!buffer) assert(!len);
     ptr_ = buffer;
     len_ = len;
   }
@@ -127,6 +129,7 @@ class StringPiece {
     len_ = str ? ::strlen(str) : 0;
   }
   void set(const void* ipBuffer, size_t iLen) {
+	if(!ipBuffer) assert(!iLen);
     ptr_ = reinterpret_cast<const char*>(ipBuffer);
     len_ = iLen;
   }
@@ -154,7 +157,7 @@ class StringPiece {
   }
 
   void copy_to_string(std::string* target) const {
-    target->assign(ptr_, len_);
+    target->assign(empty() ? "" : data(), len_);
   }
 
   void append_to_string(std::string* target) const {

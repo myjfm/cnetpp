@@ -36,7 +36,20 @@ target_link_libraries(cnetpp_server_test cnetpp)
 
 set(TEST_CLIENT_SOURCE_FILES src/test/client.cc)
 add_executable(cnetpp_client_test ${TEST_CLIENT_SOURCE_FILES})
-target_link_libraries(cnetpp_client_test cnetpp)
+target_link_libraries(cnetpp_client_test cnetpp pthread)
+
+# Add unittests
+add_subdirectory(third_party/gtest-1.7.0)
+set(GTEST_ROOT "third_party/gtest-1.7.0")
+#link_directories(${GTEST_ROOT}/lib)
+aux_source_directory(unittests UNITTEST_FILES)
+add_executable(cnetpp_unittest ${UNITTEST_FILES})
+target_include_directories(cnetpp_unittest PRIVATE ${GTEST_ROOT}/include unittest)
+target_link_libraries(cnetpp_unittest cnetpp gtest gtest_main pthread)
+
+enable_testing()
+add_test(unittest cnetpp_unittest)
+
 
 install(TARGETS cnetpp cnetpp_s
         LIBRARY DESTINATION lib
