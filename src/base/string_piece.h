@@ -96,12 +96,13 @@ class StringPiece {
 
   StringPiece(const char* offset, size_t len)
       : ptr_(offset), len_(len) {
-	if(!offset) assert(!len);
+    if(!offset) assert(!len);
   }
 
   StringPiece(const unsigned char* offset, size_t len)
       : ptr_(reinterpret_cast<const char*>(offset)),
         len_(len) {
+    if(!offset) assert(!len);
   }
 
   // data() may return a pointer to a buffer with embedded NULs, and the
@@ -120,7 +121,7 @@ class StringPiece {
     len_ = 0;
   }
   void set(const char* buffer, size_t len) {
-	if(!buffer) assert(!len);
+    if(!buffer) assert(!len);
     ptr_ = buffer;
     len_ = len;
   }
@@ -129,7 +130,7 @@ class StringPiece {
     len_ = str ? ::strlen(str) : 0;
   }
   void set(const void* ipBuffer, size_t iLen) {
-	if(!ipBuffer) assert(!iLen);
+    if(!ipBuffer) assert(!iLen);
     ptr_ = reinterpret_cast<const char*>(ipBuffer);
     len_ = iLen;
   }
@@ -137,7 +138,10 @@ class StringPiece {
     set(irStr.data(), irStr.size());
   }
 
-  char operator[](size_type iIndex) const { return ptr_[iIndex]; }
+  char operator[](size_type iIndex) const { 
+	assert(iIndex < len_ && iIndex > 0);
+	return ptr_[iIndex]; 
+  }
 
   void remove_prefix(ptrdiff_t n) {
     assert((ptrdiff_t)len_ >= n);
