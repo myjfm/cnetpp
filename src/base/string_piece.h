@@ -161,7 +161,7 @@ class StringPiece {
   }
 
   void copy_to_string(std::string* target) const {
-    target->assign(empty() ? "" : data(), len_);
+    target->assign(data() ? data() : "", len_);
   }
 
   void append_to_string(std::string* target) const {
