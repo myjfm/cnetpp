@@ -34,6 +34,8 @@ namespace http {
 tcp::ConnectionId HttpClient::Connect(const base::EndPoint* remote,
                                       const HttpOptions& http_options) {
   tcp::TcpClientOptions options;
+  options.set_send_buffer_size(http_options.send_buffer_size());
+  options.set_receive_buffer_size(http_options.receive_buffer_size());
   options.set_connected_callback(
       [this] (std::shared_ptr<tcp::TcpConnection> c) -> bool {
         return this->OnConnected(c);

@@ -40,6 +40,20 @@ class HttpOptions {
   virtual ~HttpOptions() {
   }
   
+  size_t send_buffer_size() const {
+    return send_buffer_size_;
+  }
+  void set_send_buffer_size(size_t size) {
+    send_buffer_size_ = size;
+  }
+
+  size_t receive_buffer_size() const {
+    return receive_buffer_size_;
+  }
+  void set_receive_buffer_size(size_t size) {
+    receive_buffer_size_ = size;
+  }
+
   void set_connected_callback(ConnectedCallbackType connected_callback) {
     connected_callback_ = connected_callback;
   }
@@ -73,6 +87,8 @@ class HttpOptions {
   }
 
  private:
+  size_t send_buffer_size_ {32 * 1024 };
+  size_t receive_buffer_size_ { 32 * 1024 };
   ConnectedCallbackType connected_callback_ { nullptr };
   ClosedCallbackType closed_callback_ { nullptr };
   ReceivedCallbackType received_callback_ { nullptr };

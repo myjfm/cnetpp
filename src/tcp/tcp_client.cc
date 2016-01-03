@@ -73,7 +73,7 @@ ConnectionId TcpClient::Connect(const base::EndPoint* remote,
 
   ConnectionFactory cf;
   auto connection = cf.CreateConnection(event_center_, socket.fd(), false);
-  auto tcp_connection = std::dynamic_pointer_cast<TcpConnection>(connection);
+  auto tcp_connection = std::static_pointer_cast<TcpConnection>(connection);
   tcp_connection->SetSendBufferSize(options.send_buffer_size());
   tcp_connection->SetRecvBufferSize(options.receive_buffer_size());
   tcp_connection->set_cookie(cookie);
@@ -157,7 +157,7 @@ bool TcpClient::OnClosed(
 }
 
 bool TcpClient::OnSent(bool success,
-                            std::shared_ptr<TcpConnection> tcp_connection) {
+                       std::shared_ptr<TcpConnection> tcp_connection) {
   assert(tcp_connection.get());
   std::unique_lock<std::mutex> guard(contexts_mutex_);
   auto itr = contexts_.find(tcp_connection->id());

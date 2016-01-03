@@ -137,10 +137,12 @@ bool HttpResponse::ParseStartLine(base::StringPiece data, ErrorType* error) {
     reason_phase.append(fields[i]);
   }
 
+  /*
   if (::strcmp(valid_reason_phase, reason_phase.c_str())) {
     *error = ErrorType::kResponseStatusNotFound;
     return false;
   }
+  */
   return true;
 }
 

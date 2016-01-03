@@ -59,6 +59,8 @@ int main() {
   HttpClientHandler http_client_handler;
   cnetpp::http::HttpClient http_client;
   cnetpp::http::HttpOptions http_options;
+  http_options.set_send_buffer_size(1024 * 1024);
+  http_options.set_receive_buffer_size(1024 * 1024);
   http_options.set_connected_callback(
       [&http_client_handler] (HttpConnectionPtr c) -> bool {
         return http_client_handler.OnConnected(c);
@@ -79,8 +81,10 @@ int main() {
         return http_client_handler.OnSent(success, c);
       }
   );
-  cnetpp::base::IPAddress remote_ip("127.0.0.1");
-  cnetpp::base::EndPoint remote_end_point(remote_ip, 12346);
+  //cnetpp::base::IPAddress remote_ip("127.0.0.1");
+  //cnetpp::base::EndPoint remote_end_point(remote_ip, 12346);
+  cnetpp::base::IPAddress remote_ip("61.135.169.121");
+  cnetpp::base::EndPoint remote_end_point(remote_ip, 80);
   if (!http_client.Launch(1)) {
     std::cout << "failed to launch the http_client" << std::endl;
     return 1;
