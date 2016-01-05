@@ -139,7 +139,7 @@ class StringPiece {
   }
 
   char operator[](size_type iIndex) const { 
-	assert(iIndex < len_ && iIndex > 0);
+	assert(iIndex < len_ && iIndex >= 0);
 	return ptr_[iIndex]; 
   }
 
