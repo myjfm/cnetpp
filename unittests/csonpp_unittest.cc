@@ -4,8 +4,7 @@
 using namespace std;
 using namespace cnetpp::base;
 
-TEST(Value, ConstructTest)
-{
+TEST(Value, ConstructTest) {
   {
     Value v(1);
     ASSERT_EQ(v.GetInteger(), 1);
@@ -33,8 +32,7 @@ TEST(Value, ConstructTest)
   }
 }
 
-TEST(Value, AssignTest)
-{
+TEST(Value, AssignTest) {
   Value v;
   v = 12;
   ASSERT_EQ(v.Type(), Value::ValueType::kInteger);

@@ -4,8 +4,7 @@
 using namespace std;
 using namespace cnetpp::base;
 
-TEST(StringPiece, MiscTest)
-{
+TEST(StringPiece, MiscTest) {
   StringPiece str((const char*)NULL, 0);
   ASSERT_TRUE(str.empty());
   string s;
@@ -13,8 +12,7 @@ TEST(StringPiece, MiscTest)
   ASSERT_EQ(s, "");
 }
 
-TEST(StringPiece, CompareTest)
-{
+TEST(StringPiece, CompareTest) {
   StringPiece str((const char*)NULL, 0);
   StringPiece str2("", 0);
   ASSERT_EQ(str, str2);
@@ -23,8 +21,7 @@ TEST(StringPiece, CompareTest)
   ASSERT_TRUE(str == str2);
 }
 
-TEST(StringPiece, FindTest)
-{
+TEST(StringPiece, FindTest) {
   StringPiece str("This is a test string");
   ASSERT_EQ(str.find("is", 0), 2);
   ASSERT_EQ(str.find("is", 4), 5);
