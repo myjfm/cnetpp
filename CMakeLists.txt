@@ -32,7 +32,7 @@ set_target_properties(cnetpp_s PROPERTIES OUTPUT_NAME "cnetpp")
 link_directories("${PROJECT_BINARY_DIR}")
 set(TEST_SERVER_SOURCE_FILES examples/server.cc)
 add_executable(cnetpp_server_test ${TEST_SERVER_SOURCE_FILES})
-target_link_libraries(cnetpp_server_test cnetpp)
+target_link_libraries(cnetpp_server_test cnetpp pthread)
 
 set(TEST_CLIENT_SOURCE_FILES examples/client.cc)
 add_executable(cnetpp_client_test ${TEST_CLIENT_SOURCE_FILES})
