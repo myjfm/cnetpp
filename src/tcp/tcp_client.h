@@ -35,6 +35,7 @@
 #include "tcp_callbacks.h"
 #include "tcp_options.h"
 #include "../base/end_point.h"
+#include "base/uri.h"
 
 namespace cnetpp {
 namespace tcp {
@@ -56,6 +57,14 @@ class TcpClient final {
   // connect with remote server
   // if keep local as nullptr, it will use one of local ip.
   ConnectionId Connect(const base::EndPoint* remote,
+                       const TcpClientOptions& options = TcpClientOptions(),
+                       std::shared_ptr<void> cookie = nullptr);
+
+  ConnectionId Connect(const char *url,
+                       const TcpClientOptions& options = TcpClientOptions(),
+                       std::shared_ptr<void> cookie = nullptr);
+
+  ConnectionId Connect(const base::Uri& url,
                        const TcpClientOptions& options = TcpClientOptions(),
                        std::shared_ptr<void> cookie = nullptr);
 

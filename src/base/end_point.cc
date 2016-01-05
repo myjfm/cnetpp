@@ -82,7 +82,8 @@ bool EndPoint::FromSockAddr(const struct sockaddr& address,
     return false;
   };
   switch (address_len) {
-    case IPAddress::kIPv4AddressSize: {
+//    case IPAddress::kIPv4AddressSize: {
+    case sizeof(struct sockaddr_in): {
       if (address_len < static_cast<socklen_t>(sizeof(struct sockaddr_in))) {
         return error();
       }
@@ -97,7 +98,8 @@ bool EndPoint::FromSockAddr(const struct sockaddr& address,
                IPAddress::kIPv4AddressSize);
       break;
     }
-    case IPAddress::kIPv6AddressSize: {
+//    case IPAddress::kIPv6AddressSize: {
+    case sizeof(struct sockaddr_in6): {
       if (address_len < static_cast<socklen_t>(sizeof(struct sockaddr_in6))) {
         return error();
       }

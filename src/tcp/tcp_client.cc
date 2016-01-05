@@ -31,6 +31,8 @@
 #include <sys/socket.h>
 #include <netinet/tcp.h>
 #include <netinet/in.h>
+#include <netdb.h>
+#include <arpa/inet.h>
 
 #include "connection_factory.h"
 #include "../base/end_point.h"
@@ -108,6 +110,52 @@ ConnectionId TcpClient::Connect(const base::EndPoint* remote,
   event_center_->AddCommand(cmd);
   return connection->id();
 }
+
+ConnectionId TcpClient::Connect(const char *url,
+    const TcpClientOptions& options,
+    std::shared_ptr<void> cookie) {
+  base::Uri uri;
+  if (!uri.Parse(url))
+    return -1;
+  return Connect(uri, options, cookie);
+}
+
+ConnectionId TcpClient::Connect(const base::Uri& url,
+    const TcpClientOptions& options,
+    std::shared_ptr<void> cookie) {
+  base::EndPoint endpoint;
+  struct addrinfo *presults = nullptr;
+  struct addrinfo hint;
+  bzero(&hint, sizeof(hint));
+  hint.ai_family = AF_INET;
+  hint.ai_socktype = SOCK_STREAM;
+  char port_str[32];
+  sprintf(port_str, "%d", url.Port());
+  int rc = getaddrinfo(url.Hostname().c_str(),
+      port_str,
+      &hint,
+      &presults);
+  if (rc != 0) {
+    return -1;
+  }
+  ConnectionId connection_id = -1;
+  struct addrinfo *paddrinfo = nullptr;
+  for (paddrinfo = presults; paddrinfo != NULL ; paddrinfo = presults->ai_next) {
+    char ipstr[32];
+    inet_ntop(AF_INET,                                                                                               
+        &(((struct sockaddr_in *)(paddrinfo->ai_addr))->sin_addr),
+        ipstr, 16);
+    if (!endpoint.FromSockAddr(*paddrinfo->ai_addr, paddrinfo->ai_addrlen)) {
+      continue;
+    }
+    connection_id = Connect(&endpoint, options, cookie);
+    if (connection_id != -1) {
+      break;
+    }
+  }
+  return connection_id;
+}
+
 
 bool TcpClient::AsyncClosed(ConnectionId connection_id) {
   std::unique_lock<std::mutex> guard(contexts_mutex_);
