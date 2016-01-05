@@ -2,12 +2,12 @@
 
 #include <iostream>
 
-#include "../http/http_callbacks.h"
-#include "../http/http_client.h"
-#include "../http/http_request.h"
-#include "../http/http_response.h"
-#include "../base/end_point.h"
-#include "../base/ip_address.h"
+#include "http/http_callbacks.h"
+#include "http/http_client.h"
+#include "http/http_request.h"
+#include "http/http_response.h"
+#include "base/end_point.h"
+#include "base/ip_address.h"
 
 class HttpClientHandler final {
  public:
