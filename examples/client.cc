@@ -97,9 +97,8 @@ int main(int argc, const char **argv) {
   if (!uri.Parse(argv[1])) {
     std::cout << "Uri::Parse error!" << std::endl;
     return 1;
-  } else {
-    std::cout << "Connecting to host: " << uri.Hostname() << std::endl;
   }
+
   for (auto i = 0; i < 10; ++i) {
     auto connection_id = http_client.Connect(uri, http_options);
     if (connection_id < 0) {
