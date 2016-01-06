@@ -398,10 +398,10 @@ TEST(RingBuffer, FindCharAndReform3) {
 
 TEST(RingBuffer, FindCharAndReform4) {
   cnetpp::tcp::RingBuffer rb(500);
-  cnetpp::base::StringPiece data("41\n{type:\"apploft\",command:\"dump_ad_status\"}", 44);
+  cnetpp::base::StringPiece data("41\nabcdefghijklmn", 17);
   ASSERT_TRUE(rb.Write(data));
-  ASSERT_EQ(44, rb.Size());
-  ASSERT_EQ(44, rb.Length());
+  ASSERT_EQ(17, rb.Size());
+  ASSERT_EQ(17, rb.Length());
   ASSERT_EQ(500, rb.Capacity());
 
   cnetpp::base::StringPiece result;
