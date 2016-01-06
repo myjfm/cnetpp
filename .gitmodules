@@ -1,0 +1,3 @@
+[submodule "third_party/gtest-1.7.0"]
+	path = third_party/gtest-1.7.0
+	url = https://github.com/wulaxx/gtest-1.7.0.git
