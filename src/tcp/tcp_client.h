@@ -60,14 +60,6 @@ class TcpClient final {
                        const TcpClientOptions& options = TcpClientOptions(),
                        std::shared_ptr<void> cookie = nullptr);
 
-  ConnectionId Connect(const char *url,
-                       const TcpClientOptions& options = TcpClientOptions(),
-                       std::shared_ptr<void> cookie = nullptr);
-
-  ConnectionId Connect(const base::Uri& url,
-                       const TcpClientOptions& options = TcpClientOptions(),
-                       std::shared_ptr<void> cookie = nullptr);
-
   bool AsyncClosed(ConnectionId connection_id);
 
  private:

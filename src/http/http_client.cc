@@ -27,6 +27,7 @@
 #include "http_client.h"
 #include "http_connection.h"
 #include "http_response.h"
+#include <netdb.h>
 
 namespace cnetpp {
 namespace http {
@@ -60,66 +61,44 @@ tcp::ConnectionId HttpClient::Connect(const base::EndPoint* remote,
       std::shared_ptr<HttpOptions>(new HttpOptions(http_options));
   return tcp_client_.Connect(remote, options, new_http_options);
 }
-tcp::ConnectionId HttpClient::Connect(const char *url,
-    const HttpOptions& http_options) {
-  tcp::TcpClientOptions options;
-  options.set_send_buffer_size(http_options.send_buffer_size());
-  options.set_receive_buffer_size(http_options.receive_buffer_size());
-  options.set_connected_callback(
-      [this] (std::shared_ptr<tcp::TcpConnection> c) -> bool {
-        return this->OnConnected(c);
-      }
-  );
-  options.set_closed_callback(
-      [this] (std::shared_ptr<tcp::TcpConnection> c) -> bool {
-        return this->OnClosed(c);
-      }
-  );
-  options.set_received_callback(
-      [this] (std::shared_ptr<tcp::TcpConnection> c) -> bool {
-        return this->OnReceived(c);
-      }
-  );
-  options.set_sent_callback(
-      [this] (bool status, std::shared_ptr<tcp::TcpConnection> c) -> bool {
-        return this->OnSent(status, c);
-      }
-  );
-  std::shared_ptr<void> new_http_options =
-      std::shared_ptr<HttpOptions>(new HttpOptions(http_options));
-  return tcp_client_.Connect(url, options, new_http_options);
-}
 
-tcp::ConnectionId HttpClient::Connect(const base::Uri& url,
+tcp::ConnectionId HttpClient::Connect(base::StringPiece url_str,
     const HttpOptions& http_options) {
-  tcp::TcpClientOptions options;
-  options.set_send_buffer_size(http_options.send_buffer_size());
-  options.set_receive_buffer_size(http_options.receive_buffer_size());
-  options.set_connected_callback(
-      [this] (std::shared_ptr<tcp::TcpConnection> c) -> bool {
-        return this->OnConnected(c);
-      }
-  );
-  options.set_closed_callback(
-      [this] (std::shared_ptr<tcp::TcpConnection> c) -> bool {
-        return this->OnClosed(c);
-      }
-  );
-  options.set_received_callback(
-      [this] (std::shared_ptr<tcp::TcpConnection> c) -> bool {
-        return this->OnReceived(c);
-      }
-  );
-  options.set_sent_callback(
-      [this] (bool status, std::shared_ptr<tcp::TcpConnection> c) -> bool {
-        return this->OnSent(status, c);
-      }
-  );
-  std::shared_ptr<void> new_http_options =
-      std::shared_ptr<HttpOptions>(new HttpOptions(http_options));
-  return tcp_client_.Connect(url, options, new_http_options);
+  base::EndPoint endpoint;
+  struct addrinfo *presults = nullptr;
+  struct addrinfo hint;
+  bzero(&hint, sizeof(hint));
+  hint.ai_family = AF_INET;
+  hint.ai_socktype = SOCK_STREAM;
+  base::Uri url;
+  if (!url.Parse(url_str.as_string())) {
+    return -1;
+  }
+  char port_str[32];
+  sprintf(port_str, "%d", url.Port() ? url.Port() : 80);
+  int rc = getaddrinfo(url.Hostname().c_str(), port_str, &hint, &presults);
+  if (rc != 0 || !presults) {
+    return -1;
+  }
+  tcp::ConnectionId connection_id = -1;
+  struct addrinfo *paddrinfo = presults;
+  if (!endpoint.FromSockAddr(*paddrinfo->ai_addr, paddrinfo->ai_addrlen)) {
+    return -1;
+  }
+  freeaddrinfo(presults);
+  return Connect(&endpoint, http_options);
+//  for (paddrinfo = presults; paddrinfo != NULL ; paddrinfo = presults->ai_next) {
+//    if (!endpoint.FromSockAddr(*paddrinfo->ai_addr, paddrinfo->ai_addrlen)) {
+//      continue;
+//    }
+//    connection_id = Connect(&endpoint, http_options);
+//    if (connection_id != -1) {
+//      break;
+//    }
+//  }
+//  freeaddrinfo(presults);
+//  return connection_id;
 }
-
 
 bool HttpClient::AsyncClose(tcp::ConnectionId connection_id) {
   return tcp_client_.AsyncClosed(connection_id);

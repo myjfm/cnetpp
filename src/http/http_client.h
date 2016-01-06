@@ -50,12 +50,8 @@ class HttpClient final : public HttpBase {
 
   tcp::ConnectionId Connect(const base::EndPoint* remote,
                             const HttpOptions& options);
-  tcp::ConnectionId Connect(const char *url,
+  tcp::ConnectionId Connect(base::StringPiece url,
                        const HttpOptions& options);
-
-  tcp::ConnectionId Connect(const base::Uri& url,
-                            const HttpOptions& options);
-
 
   bool AsyncClose(tcp::ConnectionId connection_id);
 

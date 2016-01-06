@@ -93,14 +93,8 @@ int main(int argc, const char **argv) {
     std::cout << "failed to launch the http_client" << std::endl;
     return 1;
   }
-  cnetpp::base::Uri uri;
-  if (!uri.Parse(argv[1])) {
-    std::cout << "Uri::Parse error!" << std::endl;
-    return 1;
-  }
-
   for (auto i = 0; i < 10; ++i) {
-    auto connection_id = http_client.Connect(uri, http_options);
+    auto connection_id = http_client.Connect(argv[1], http_options);
     if (connection_id < 0) {
       std::cout << "failed to connect to the server" << std::endl;
       return 1;
