@@ -95,7 +95,7 @@ int main(int argc, const char **argv) {
   }
   for (auto i = 0; i < 10; ++i) {
     auto connection_id = http_client.Connect(argv[1], http_options);
-    if (connection_id < 0) {
+    if (connection_id == cnetpp::tcp::kInvalidConnectionId) {
       std::cout << "failed to connect to the server" << std::endl;
       return 1;
     }

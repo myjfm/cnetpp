@@ -73,20 +73,69 @@ bool HttpConnection::OnReceived() {
       }
       case ReceiveStatus::kWaitingBody: {
         int content_length = http_packet_->GetContentLength();
-        if (content_length > 0) {
+        if (content_length >= 0) {
           if (!recv_buffer.Read(&(http_packet_->mutable_http_body()),
                                 content_length)) {
             return true;
           }
+        } else {
+          // process "Transfer-Encoding: chunked" case
+          std::string* chunked = nullptr;
+          if (http_packet_->GetHttpHeader("Transfer-Encoding", &chunked) &&
+              base::StringPiece(*chunked).ignore_case_equal("chunked")) {
+            receive_status_ = ReceiveStatus::kWaitingChunkSize;
+            break;
+          }
         }
         receive_status_ = ReceiveStatus::kCompleted;
+        break;
+      }
+      case ReceiveStatus::kWaitingChunkSize: {
+        base::StringPiece chunk_size_line;
+        if (!recv_buffer.Find("\r\n", &chunk_size_line)) {
+          return true;  // no enough data
+        }
+        if (chunk_size_line.size() == 0) {
+          // should not happen
+          return false;
+        }
+        if (chunk_size_line[0] == '0') {  // last chunk
+          receive_status_ = ReceiveStatus::kWaitingChunkTrailer;
+          recv_buffer.CommitRead(chunk_size_line.length() + 2);
+          break;
+        }
+        current_chunk_size_ =
+            base::StringUtils::HexStrToInteger(chunk_size_line, nullptr);
+        recv_buffer.CommitRead(chunk_size_line.length() + 2);
+        receive_status_ = ReceiveStatus::kWaitingChunkData;
+        break;
+      }
+      case ReceiveStatus::kWaitingChunkData: {
+        base::StringPiece chunk_size_line;
+        if (!recv_buffer.Read(&(http_packet_->mutable_http_body()),
+                              current_chunk_size_ + 2)) {  // chunk_data + \r\n
+          return true;  // no enough data
+        }
+        http_packet_->mutable_http_body().erase(
+            http_packet_->http_body().length() - 2, 2);
+        receive_status_ = ReceiveStatus::kWaitingChunkSize;
+        break;
+      }
+      case ReceiveStatus::kWaitingChunkTrailer: {
+        base::StringPiece trailer_line;
+        if (!recv_buffer.Find("\r\n\r\n", &trailer_line)) {
+          return true;
+        }
+        // just ignore the trailer
+        recv_buffer.CommitRead(trailer_line.length() + 4);
+        receive_status_ = ReceiveStatus::kCompleted;
+        break;
+      }
+      case ReceiveStatus::kCompleted:
         // call the callback
         if(received_callback_) {
           received_callback_(shared_from_this());
         }
-        break;
-      }
-      case ReceiveStatus::kCompleted:
         receive_status_ = ReceiveStatus::kWaitingHeader;
         http_packet_->Reset();
         break;

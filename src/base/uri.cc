@@ -50,8 +50,13 @@ const std::regex Uri::kAuthorityRegex(
 
 const std::regex Uri::kQueryParamRegex("(^|&)([^=&]*)=?([^=&]*)(?=(&|$))");
 
-static const std::unordered_map<std::string, uint16_t> kSchemeToPortMap = {{"http", 80}, {"https", 443}};
-static uint16_t get_scheme_default_port(const std::string& schema) {
+static const std::unordered_map<std::string, uint16_t> kSchemeToPortMap = 
+{
+  {"http", 80},
+  {"https", 443}
+};
+
+static uint16_t GetSchemeDefaultPort(const std::string& schema) {
   auto i = kSchemeToPortMap.find(schema);
   if (i == kSchemeToPortMap.end()) {
     return 0;
@@ -93,7 +98,7 @@ bool Uri::Parse(const std::string& str_uri) {
     if (!port_str_.empty()) {
       port_ = static_cast<uint16_t>(std::strtoul(port_str_.c_str(), nullptr, 10));
     } else {
-      port_ = get_scheme_default_port(scheme_);
+      port_ = GetSchemeDefaultPort(scheme_);
     }
 
     username_ = std::string(authority_match[1].first,
