@@ -123,7 +123,10 @@ class HttpConnection : public std::enable_shared_from_this<HttpConnection> {
   enum class ReceiveStatus {
     kWaitingHeader = 0,
     kWaitingBody = 1,
-    kCompleted = 2,
+    kWaitingChunkSize = 2,
+    kWaitingChunkData = 3,
+    kWaitingChunkTrailer = 4,
+    kCompleted = 5,
   };
 
   tcp::ConnectionId connection_id_;
@@ -131,6 +134,7 @@ class HttpConnection : public std::enable_shared_from_this<HttpConnection> {
   std::shared_ptr<tcp::TcpConnection> tcp_connection_ { nullptr };
   std::shared_ptr<HttpPacket> http_packet_ { nullptr };
   ReceiveStatus receive_status_ { ReceiveStatus::kWaitingHeader };
+  int64_t current_chunk_size_ { 0 };
   bool finished_send_ { true };
 
   ConnectedCallbackType connected_callback_ { nullptr };
