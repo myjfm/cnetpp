@@ -130,6 +130,7 @@ class Uri {
   std::string password_;
   std::string host_;
   uint16_t port_ { 0 };
+  std::string port_str_;
   std::string path_;
   std::string query_;
   std::string fragment_;

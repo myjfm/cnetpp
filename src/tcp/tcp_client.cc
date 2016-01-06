@@ -31,6 +31,8 @@
 #include <sys/socket.h>
 #include <netinet/tcp.h>
 #include <netinet/in.h>
+#include <netdb.h>
+#include <arpa/inet.h>
 
 #include "connection_factory.h"
 #include "../base/end_point.h"
@@ -63,7 +65,7 @@ ConnectionId TcpClient::Connect(const base::EndPoint* remote,
       !socket.SetTcpNoDelay() ||
       !socket.SetKeepAlive() ||
       !socket.Connect(*remote)) {
-    return -1;
+    return kInvalidConnectionId;
   }
 
   InternalConnectionContext cc;
@@ -108,6 +110,7 @@ ConnectionId TcpClient::Connect(const base::EndPoint* remote,
   event_center_->AddCommand(cmd);
   return connection->id();
 }
+
 
 bool TcpClient::AsyncClosed(ConnectionId connection_id) {
   std::unique_lock<std::mutex> guard(contexts_mutex_);

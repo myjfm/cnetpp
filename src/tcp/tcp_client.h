@@ -35,6 +35,7 @@
 #include "tcp_callbacks.h"
 #include "tcp_options.h"
 #include "../base/end_point.h"
+#include "base/uri.h"
 
 namespace cnetpp {
 namespace tcp {

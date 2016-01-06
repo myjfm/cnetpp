@@ -34,6 +34,7 @@
 #include "http_connection.h"
 #include "../base/end_point.h"
 #include "../tcp/tcp_client.h"
+#include <base/uri.h>
 
 namespace cnetpp {
 namespace http {
@@ -48,6 +49,8 @@ class HttpClient final : public HttpBase {
   }
 
   tcp::ConnectionId Connect(const base::EndPoint* remote,
+                            const HttpOptions& options);
+  tcp::ConnectionId Connect(base::StringPiece url,
                             const HttpOptions& options);
 
   bool AsyncClose(tcp::ConnectionId connection_id);

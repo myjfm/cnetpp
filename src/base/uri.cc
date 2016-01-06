@@ -28,6 +28,7 @@
 
 #include <cstdlib>
 #include <string>
+#include <unordered_map>
 
 #include "string_utils.h"
 
@@ -48,6 +49,20 @@ const std::regex Uri::kAuthorityRegex(
     "(?::(\\d*))?"); // port
 
 const std::regex Uri::kQueryParamRegex("(^|&)([^=&]*)=?([^=&]*)(?=(&|$))");
+
+static const std::unordered_map<std::string, uint16_t> kSchemeToPortMap = 
+{
+  {"http", 80},
+  {"https", 443}
+};
+
+static uint16_t GetSchemeDefaultPort(const std::string& schema) {
+  auto i = kSchemeToPortMap.find(schema);
+  if (i == kSchemeToPortMap.end()) {
+    return 0;
+  }
+  return i->second;
+}
 
 bool Uri::Parse(const std::string& str_uri) {
   port_ = 0;
@@ -79,9 +94,11 @@ bool Uri::Parse(const std::string& str_uri) {
       return false;
     }
 
-    std::string port(authority_match[4].first, authority_match[4].second);
-    if (!port.empty()) {
-      port_ = static_cast<uint16_t>(std::strtoul(port.c_str(), nullptr, 10));
+    port_str_ = authority_match[4].str();
+    if (!port_str_.empty()) {
+      port_ = static_cast<uint16_t>(std::strtoul(port_str_.c_str(), nullptr, 10));
+    } else {
+      port_ = GetSchemeDefaultPort(scheme_);
     }
 
     username_ = std::string(authority_match[1].first,
@@ -133,12 +150,12 @@ std::string Uri::String() const {
   }
 
   str_uri.append(host_);
-  if (port_ != 0) {
+  if (!port_str_.empty()) {
     str_uri.append(":");
 #if 0
     str_uri.append(StringUtils::NumberToStr(port_));
 #endif
-    str_uri.append(std::to_string(port_));
+    str_uri.append(port_str_);
   }
   str_uri.append(path_);
   if (!query_.empty()) {
@@ -172,12 +189,12 @@ std::string Uri::Authority() const {
 
   res.append(host_);
 
-  if (port_ != 0) {
+  if (!port_str_.empty()) {
     res.push_back(':');
 #if 0
     res.append(StringUtils::NumberToStr(port_));
 #endif
-    res.append(std::to_string(port_));
+    res.append(port_str_);
   }
 
   return std::move(res);

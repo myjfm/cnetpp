@@ -27,6 +27,7 @@
 #include "http_client.h"
 #include "http_connection.h"
 #include "http_response.h"
+#include <netdb.h>
 
 namespace cnetpp {
 namespace http {
@@ -59,6 +60,36 @@ tcp::ConnectionId HttpClient::Connect(const base::EndPoint* remote,
   std::shared_ptr<void> new_http_options =
       std::shared_ptr<HttpOptions>(new HttpOptions(http_options));
   return tcp_client_.Connect(remote, options, new_http_options);
+}
+
+tcp::ConnectionId HttpClient::Connect(base::StringPiece url_str,
+                                      const HttpOptions& http_options) {
+  // parse url
+  base::Uri url;
+  if (!url.Parse(url_str.as_string())) {
+    return tcp::kInvalidConnectionId;
+  }
+  
+  // resolve address of url
+  struct addrinfo *presults = nullptr;
+  struct addrinfo hint;
+  bzero(&hint, sizeof(hint));
+  hint.ai_family = AF_UNSPEC;
+  hint.ai_socktype = SOCK_STREAM;
+  std::string port_str = std::to_string(url.Port());
+  int rc = getaddrinfo(url.Hostname().c_str(), port_str.c_str(), &hint, &presults);
+  if (rc != 0 || !presults) {
+    return tcp::kInvalidConnectionId;
+  }
+  base::EndPoint endpoint;
+  if (!endpoint.FromSockAddr(*presults->ai_addr, presults->ai_addrlen)) {
+    freeaddrinfo(presults);
+    return tcp::kInvalidConnectionId;
+  }
+  freeaddrinfo(presults);
+
+  // connect to server
+  return Connect(&endpoint, http_options);
 }
 
 bool HttpClient::AsyncClose(tcp::ConnectionId connection_id) {

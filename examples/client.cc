@@ -54,7 +54,11 @@ class HttpClientHandler final {
   }
 };
 
-int main() {
+int main(int argc, const char **argv) {
+  if(argc != 2) {
+    std::cout << "Usage: " << argv[0] << " <url>" << std::endl;
+    return 1;
+  }
   using HttpConnectionPtr = std::shared_ptr<cnetpp::http::HttpConnection>;
   HttpClientHandler http_client_handler;
   cnetpp::http::HttpClient http_client;
@@ -90,8 +94,8 @@ int main() {
     return 1;
   }
   for (auto i = 0; i < 10; ++i) {
-    auto connection_id = http_client.Connect(&remote_end_point, http_options);
-    if (connection_id < 0) {
+    auto connection_id = http_client.Connect(argv[1], http_options);
+    if (connection_id == cnetpp::tcp::kInvalidConnectionId) {
       std::cout << "failed to connect to the server" << std::endl;
       return 1;
     }
@@ -103,4 +107,3 @@ int main() {
 
   return 0;
 }
-
