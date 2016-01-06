@@ -74,7 +74,7 @@ tcp::ConnectionId HttpClient::Connect(base::StringPiece url_str,
   struct addrinfo *presults = nullptr;
   struct addrinfo hint;
   bzero(&hint, sizeof(hint));
-  hint.ai_family = AF_INET;
+  hint.ai_family = AF_UNSPEC;
   hint.ai_socktype = SOCK_STREAM;
   std::string port_str = std::to_string(url.Port());
   int rc = getaddrinfo(url.Hostname().c_str(), port_str.c_str(), &hint, &presults);
