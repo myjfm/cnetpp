@@ -89,10 +89,9 @@ bool Uri::Parse(const std::string& str_uri) {
       return false;
     }
 
-    std::string port(authority_match[4].first, authority_match[4].second);
-    port_str_ = port;
-    if (!port.empty()) {
-      port_ = static_cast<uint16_t>(std::strtoul(port.c_str(), nullptr, 10));
+    port_str_ = authority_match[4].str();
+    if (!port_str_.empty()) {
+      port_ = static_cast<uint16_t>(std::strtoul(port_str_.c_str(), nullptr, 10));
     } else {
       port_ = get_scheme_default_port(scheme_);
     }
