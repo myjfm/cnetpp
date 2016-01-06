@@ -63,7 +63,7 @@ tcp::ConnectionId HttpClient::Connect(const base::EndPoint* remote,
 }
 
 tcp::ConnectionId HttpClient::Connect(base::StringPiece url_str,
-    const HttpOptions& http_options) {
+                                      const HttpOptions& http_options) {
   // parse url
   base::Uri url;
   if (!url.Parse(url_str.as_string())) {
@@ -83,6 +83,7 @@ tcp::ConnectionId HttpClient::Connect(base::StringPiece url_str,
   }
   base::EndPoint endpoint;
   if (!endpoint.FromSockAddr(*presults->ai_addr, presults->ai_addrlen)) {
+    freeaddrinfo(presults);
     return tcp::kInvalidConnectionId;
   }
   freeaddrinfo(presults);
