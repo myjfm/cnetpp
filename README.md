@@ -1,28 +1,29 @@
 What is cnetpp?
 ---------------
 
-一个轻量级的网络通信框架，专注于现代c++的后端开发。
+a ligthweight asynchronous network library focused on backend c++ development
 
 Dependancies:
 -------------
 
-* linux2.6 或更高版本（捡来会支持跨平台）
-* 支持c++11或更高版本c++的编译器
+* linux2.6 or higher (will support multi-platform in the future)
+* gcc4.9.0 or higher
 
 Includes:
 ---------
 
-* 一个简单的json解析器，命名为csonpp
-* 一个简单的线程及线程池管理框架
-* 基于epoll（将来会集成select，poll，kqueue，/dev/poll等）的异步事件通知的TCP+HTTP网络通信框架。
+* a simple json parser, named csonpp
+* a simple thread framework
+* the asynchronous Tcp network framework based on epoll(select, poll will be supported in the future)
+* the asynchronous Http server and client module based on our Tcp network framework
   
 Install:
 --------
 
-* 进入到cnetpp根目录
+* cd $CNETPP_ROOT_PATH
 * mkdir build/
 * cd build/
-* cmake -DCMAKE_INSTALL_PREFIX=/usr/local ..  修改CMAKE_INSTALL_PREFIX变量的值来改变安装目录
+* cmake -DCMAKE_INSTALL_PREFIX=/usr/local .. (modify the value of option CMAKE_INSTALL_PREFIX if you want to change the install directory)
 * make
 * sudo make install
 
