@@ -1,8 +1,7 @@
 #include <gtest/gtest.h>
 #include <base/uri.h>
 
-TEST(Uri, ParseTest)
-{
+TEST(Uri, ParseTest) {
   cnetpp::base::Uri uri;
   uri.Parse("http://www.baidu.com");
   ASSERT_EQ(uri.Port(), 80);
