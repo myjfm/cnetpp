@@ -64,40 +64,31 @@ tcp::ConnectionId HttpClient::Connect(const base::EndPoint* remote,
 
 tcp::ConnectionId HttpClient::Connect(base::StringPiece url_str,
     const HttpOptions& http_options) {
-  base::EndPoint endpoint;
+  // parse url
+  base::Uri url;
+  if (!url.Parse(url_str.as_string())) {
+    return tcp::kInvalidConnectionId;
+  }
+  
+  // resolve address of url
   struct addrinfo *presults = nullptr;
   struct addrinfo hint;
   bzero(&hint, sizeof(hint));
   hint.ai_family = AF_INET;
   hint.ai_socktype = SOCK_STREAM;
-  base::Uri url;
-  if (!url.Parse(url_str.as_string())) {
-    return -1;
-  }
-  char port_str[32];
-  sprintf(port_str, "%d", url.Port() ? url.Port() : 80);
-  int rc = getaddrinfo(url.Hostname().c_str(), port_str, &hint, &presults);
+  std::string port_str = std::to_string(url.Port());
+  int rc = getaddrinfo(url.Hostname().c_str(), port_str.c_str(), &hint, &presults);
   if (rc != 0 || !presults) {
-    return -1;
+    return tcp::kInvalidConnectionId;
   }
-  tcp::ConnectionId connection_id = -1;
-  struct addrinfo *paddrinfo = presults;
-  if (!endpoint.FromSockAddr(*paddrinfo->ai_addr, paddrinfo->ai_addrlen)) {
-    return -1;
+  base::EndPoint endpoint;
+  if (!endpoint.FromSockAddr(*presults->ai_addr, presults->ai_addrlen)) {
+    return tcp::kInvalidConnectionId;
   }
   freeaddrinfo(presults);
+
+  // connect to server
   return Connect(&endpoint, http_options);
-//  for (paddrinfo = presults; paddrinfo != NULL ; paddrinfo = presults->ai_next) {
-//    if (!endpoint.FromSockAddr(*paddrinfo->ai_addr, paddrinfo->ai_addrlen)) {
-//      continue;
-//    }
-//    connection_id = Connect(&endpoint, http_options);
-//    if (connection_id != -1) {
-//      break;
-//    }
-//  }
-//  freeaddrinfo(presults);
-//  return connection_id;
 }
 
 bool HttpClient::AsyncClose(tcp::ConnectionId connection_id) {

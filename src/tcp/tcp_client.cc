@@ -65,7 +65,7 @@ ConnectionId TcpClient::Connect(const base::EndPoint* remote,
       !socket.SetTcpNoDelay() ||
       !socket.SetKeepAlive() ||
       !socket.Connect(*remote)) {
-    return -1;
+    return kInvalidConnectionId;
   }
 
   InternalConnectionContext cc;
