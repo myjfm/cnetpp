@@ -50,16 +50,10 @@ const std::regex Uri::kAuthorityRegex(
 
 const std::regex Uri::kQueryParamRegex("(^|&)([^=&]*)=?([^=&]*)(?=(&|$))");
 
+static const std::unordered_map<std::string, uint16_t> kSchemeToPortMap = {{"http", 80}, {"https", 443}};
 static uint16_t get_scheme_default_port(const std::string& schema) {
-  bool scheme2port_map_inited = false;
-  std::unordered_map<std::string, uint16_t> scheme2port_map;
-  if (!scheme2port_map_inited) {
-    scheme2port_map.insert(std::make_pair("http", 80));
-    scheme2port_map.insert(std::make_pair("https", 443));
-    scheme2port_map_inited = true;
-  }
-  auto i = scheme2port_map.find(schema);
-  if (i == scheme2port_map.end()) {
+  auto i = kSchemeToPortMap.find(schema);
+  if (i == kSchemeToPortMap.end()) {
     return 0;
   }
   return i->second;
