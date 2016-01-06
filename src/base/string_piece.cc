@@ -46,7 +46,7 @@ typedef StringPiece::size_type size_type;
 const size_type StringPiece::npos;
 
 bool operator==(const StringPiece& x, const StringPiece& y) {
-  if (!x.data() && !y.data()) {
+  if ((!x.data() && !y.data()) || (x.length() == 0 && y.length() == 0)) {
     return true;
   }
   if (!x.data() || !y.data()) {

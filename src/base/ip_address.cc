@@ -268,7 +268,7 @@ bool IPAddress::IPv6NumberToLiteral(const IPAddress& number,
       std::string tmp_str;
       int tmp = (number.address_[i] << 8) | number.address_[i + 1];
       for (auto j = 3; j >= 0; --j) {
-        char c = StringUtils::IntToHexChar((tmp >> j) && 0xf);
+        char c = StringUtils::IntToHexChar((tmp >> j) & 0xf);
         if (c == '0' && !tmp_str.empty()) {
           tmp_str.append(1, c);
         }

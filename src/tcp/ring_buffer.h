@@ -44,11 +44,12 @@ namespace tcp {
 class RingBuffer {
  public:
   explicit RingBuffer(size_t buffer_size)
-      : buffer_(buffer_size),
+      : buffer_(new char[buffer_size]),
         begin_(0),
         end_(0),
         size_(0),
         capacity_(buffer_size) {
+    assert(buffer_);
   }
   ~RingBuffer() {
   }
@@ -60,6 +61,9 @@ class RingBuffer {
   size_t Size() {
     return size_;
   }
+
+  // if new_size is less than size_, resize will fail
+  bool Resize(size_t new_size);
 
   size_t Length() {
     return size_;
@@ -117,7 +121,7 @@ class RingBuffer {
 
  private:
   // preallocate space for each connection
-  std::vector<char> buffer_;
+  char* buffer_;
   int begin_;
   int end_;
   size_t size_;

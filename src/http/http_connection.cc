@@ -123,11 +123,11 @@ bool HttpConnection::OnReceived() {
       }
       case ReceiveStatus::kWaitingChunkTrailer: {
         base::StringPiece trailer_line;
-        if (!recv_buffer.Find("\r\n\r\n", &trailer_line)) {
+        if (!recv_buffer.Find("\r\n", &trailer_line)) {
           return true;
         }
         // just ignore the trailer
-        recv_buffer.CommitRead(trailer_line.length() + 4);
+        recv_buffer.CommitRead(trailer_line.length() + 2);
         receive_status_ = ReceiveStatus::kCompleted;
         break;
       }

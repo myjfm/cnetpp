@@ -36,6 +36,28 @@
 namespace cnetpp {
 namespace tcp {
 
+bool RingBuffer::Resize(size_t new_size) {
+  if (new_size < size_) {
+    return false;
+  }
+  char* tmp = new char[new_size];
+  if (size_ > 0) {
+    if (end_ <= begin_) {
+      // readable data is splited into two slices
+      ::memcpy(tmp, buffer_ + begin_, capacity_ - begin_);
+      ::memcpy(tmp + capacity_ - begin_, buffer_, end_);
+    } else {
+      ::memcpy(tmp, buffer_ + begin_, end_ - begin_);
+    }
+  }
+  delete [] buffer_;
+  buffer_ = tmp;
+  capacity_ = new_size;
+  begin_ =  0;
+  end_ = size_;
+  return true;
+}
+
 void RingBuffer::GetWritePositions(struct iovec* write_positions, size_t n) {
   assert(write_positions);
   assert(n == 2);
@@ -49,13 +71,13 @@ void RingBuffer::GetWritePositions(struct iovec* write_positions, size_t n) {
 
   if (end_ >= begin_) {
     // writable space is splited into two sub-spaces
-    write_positions[0].iov_base = static_cast<void*>(&(buffer_[end_]));
+    write_positions[0].iov_base = buffer_ + end_;
     write_positions[0].iov_len = capacity_ - end_;
-    write_positions[1].iov_base = static_cast<void*>(&(buffer_[0]));
+    write_positions[1].iov_base = buffer_;
     write_positions[1].iov_len = begin_;
   } else {
     // writable space is continuous
-    write_positions[0].iov_base = static_cast<void*>(&(buffer_[end_]));
+    write_positions[0].iov_base = buffer_ + end_;
     write_positions[0].iov_len = begin_ - end_;
     write_positions[1].iov_len = 0;
   }
@@ -89,13 +111,13 @@ void RingBuffer::GetReadPositions(struct iovec* read_positions, size_t n) {
 
   if (end_ <= begin_) {
     // readable data is splited into two slices
-    read_positions[0].iov_base = static_cast<void*>(&(buffer_[begin_]));
+    read_positions[0].iov_base = buffer_ + begin_;
     read_positions[0].iov_len = capacity_ - begin_;
-    read_positions[1].iov_base = static_cast<void*>(&(buffer_[0]));
+    read_positions[1].iov_base = buffer_;
     read_positions[1].iov_len = end_;
   } else {
     // readable data is continuous
-    read_positions[0].iov_base = static_cast<void*>(&(buffer_[begin_]));
+    read_positions[0].iov_base = buffer_ + begin_;
     read_positions[0].iov_len = end_ - begin_;
     read_positions[1].iov_len = 0;
   }
@@ -130,18 +152,18 @@ bool RingBuffer::Write(base::StringPiece data) {
   if (end_ >= begin_) {
     // writable space is splited into two sub-spaces
     if (data.length() <= capacity_ - end_) {
-      ::memcpy(&buffer_[end_], data.data(), data.length());
+      ::memcpy(buffer_ + end_, data.data(), data.length());
       end_ += data.length();
     } else {
-      ::memcpy(&buffer_[end_], data.data(), capacity_ - end_);
-      ::memcpy(&buffer_[0],
+      ::memcpy(buffer_ + end_, data.data(), capacity_ - end_);
+      ::memcpy(buffer_,
                data.data() + capacity_ - end_,
                data.length() + end_ - capacity_);
       end_ = data.length() + end_ - capacity_;
     }
   } else {
     // writable space is continuous
-    ::memcpy(&buffer_[end_], data.data(), data.length());
+    ::memcpy(buffer_ + end_, data.data(), data.length());
     end_ += data.length();
   }
   return true;
@@ -163,18 +185,16 @@ bool RingBuffer::Read(std::string* data, size_t n) {
   if (end_ <= begin_) {
     // readable data is splited into two slices
     if (n <= capacity_ - begin_) {
-      data->append(static_cast<const char*>(&buffer_[begin_]), n);
+      data->append(buffer_ + begin_, n);
       begin_ += n;
     } else {
-      data->append(static_cast<const char*>(&buffer_[begin_]),
-                   capacity_ - begin_);
-      data->append(static_cast<const char*>(&buffer_[0]),
-                   n + begin_ - capacity_);
+      data->append(buffer_ + begin_, capacity_ - begin_);
+      data->append(buffer_, n + begin_ - capacity_);
       begin_ = n + begin_ - capacity_;
     }
   } else {
     // readable data is continuous
-    data->append(static_cast<const char*>(&buffer_[begin_]), n);
+    data->append(buffer_ + begin_, n);
     begin_ += n;
   }
   return true;
@@ -188,30 +208,32 @@ bool RingBuffer::DoFind(base::StringPiece delimiters, base::StringPiece* data) {
     Reform();
   }
   
-  base::StringPiece buf(&buffer_[begin_], size_);
+  base::StringPiece buf(buffer_ + begin_, size_);
   base::StringPiece::size_type idx = buf.find(delimiters);
   if (idx == base::StringPiece::npos) {
     return false;
   }
-  data->set(&buffer_[begin_], idx);
+  data->set(buffer_ + begin_, idx);
   return true;
 }
 
 void RingBuffer::Reform() {
   if (end_ <= 2 * begin_ - static_cast<int>(capacity_)) {
-    ::memmove(&buffer_[capacity_ - begin_], &buffer_[0], end_);
-    ::memcpy(&buffer_[0], &buffer_[begin_], capacity_ - begin_);
+    ::memmove(buffer_ + capacity_ - begin_, buffer_, end_);
+    ::memcpy(buffer_, buffer_ + begin_, capacity_ - begin_);
   } else {
     if (end_ <= static_cast<int>(capacity_) - begin_) {
-      std::vector<char> tmp(end_);
-      ::memcpy(&tmp[0], &buffer_[0], end_);
-      ::memcpy(&buffer_[0], &buffer_[begin_], capacity_ - begin_);
-      ::memcpy(&buffer_[capacity_ - begin_], &tmp[0], end_);
+      char* tmp = new char[end_];
+      ::memcpy(tmp, buffer_, end_);
+      ::memcpy(buffer_, buffer_ + begin_, capacity_ - begin_);
+      ::memcpy(buffer_ + capacity_ - begin_, tmp, end_);
+      delete [] tmp;
     } else {
-      std::vector<char> tmp(static_cast<int>(capacity_ - begin_));
-      ::memcpy(&tmp[0], &buffer_[begin_], capacity_ - begin_);
-      ::memmove(&buffer_[capacity_ - begin_], &buffer_[0], end_);
-      ::memcpy(&buffer_[0], &tmp[0], capacity_ - begin_);
+      char* tmp = new char[capacity_ - begin_];
+      ::memcpy(tmp, buffer_ + begin_, capacity_ - begin_);
+      ::memmove(buffer_ + capacity_ - begin_, buffer_, end_);
+      ::memcpy(buffer_, tmp, capacity_ - begin_);
+      delete [] tmp;
     }
   }
   begin_ = 0;
