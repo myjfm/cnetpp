@@ -33,7 +33,6 @@
 
 #include <tcp/event.h>
 #include <tcp/event_poller.h>
-#include <tcp/interrupter.h>
 
 #include <vector>
 #include <unordered_map>
@@ -42,6 +41,7 @@ namespace cnetpp {
 namespace tcp {
 
 class EventCenter;
+class Interrupter;
 
 class SelectEventPollerImpl : public EventPoller {
  public:
@@ -51,6 +51,7 @@ class SelectEventPollerImpl : public EventPoller {
         pipe_read_fd_(-1),
         pipe_write_fd_(-1),
 #endif
+        interrupter_(NULL),
         max_connections_(max_connections) {
 		  select_fds_.clear();
   }
