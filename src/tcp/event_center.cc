@@ -62,6 +62,9 @@ EventCenter::EventCenter(size_t thread_num)
 
 bool EventCenter::Launch() {
   for (size_t i = 0; i < internal_event_poller_infos_.size(); ++i) {
+    if (!internal_event_poller_infos_[i]->event_poller_->Init(shared_from_this())) {
+      continue;
+    }
     std::shared_ptr<concurrency::Task> task(
         new InternalEventTask(shared_from_this(),
                               internal_event_poller_infos_[i]->event_poller_));
@@ -166,9 +169,11 @@ bool EventCenter::InternalEventTask::operator()(void* arg) {
     return false;
   }
 
+#if 0
   if (!event_poller->Init(event_center)) {
     return false;
   }
+#endif
 
   while (!IsStopped()) {
     if (!event_poller->Poll()) {
