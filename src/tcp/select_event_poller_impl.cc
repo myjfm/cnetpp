@@ -29,6 +29,7 @@
 #endif
 
 #include "select_event_poller_impl.h"
+#include <tcp/interrupter.h>
 #include <sys/select.h>
 
 #include <errno.h>
@@ -129,9 +130,7 @@ bool SelectEventPollerImpl::Interrupt() {
   }
   return true;
 #endif
-  if (interrupter_) {
-    return false;
-  }
+  assert(interrupter_);
   return interrupter_->Interrupt();
 }
 
@@ -256,6 +255,7 @@ int SelectEventPollerImpl::BuildFdsets(fd_set* rd_fdset,
   FD_ZERO(wr_fdset);
   FD_ZERO(ex_fdset);
   int interrupter_rd_fd = interrupter_->get_read_fd();
+  assert(interrupter_rd_fd >= 0);
   FD_SET(interrupter_rd_fd, rd_fdset);
   FD_SET(interrupter_rd_fd, ex_fdset);
   max_fd = max_fd < interrupter_rd_fd ? interrupter_rd_fd : max_fd;

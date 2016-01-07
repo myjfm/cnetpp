@@ -137,7 +137,7 @@ class RingBuffer {
 namespace std {
 
 template<>
-inline void swap(cnetpp::tcp::RingBuffer& a, cnetpp::tcp::RingBuffer& b) {
+inline void swap(cnetpp::tcp::RingBuffer& a, cnetpp::tcp::RingBuffer& b) noexcept {
   a.Swap(b);
 }
 
