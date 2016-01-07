@@ -31,8 +31,9 @@
 #ifndef CNETPP_TCP_EPOLL_EVENT_POLLER_IMPL_H_
 #define CNETPP_TCP_EPOLL_EVENT_POLLER_IMPL_H_
 
-#include "event.h"
-#include "event_poller.h"
+#include <tcp/event.h>
+#include <tcp/event_poller.h>
+#include <tcp/interrupter.h>
 
 #include <sys/epoll.h>
 
@@ -46,11 +47,10 @@ class EventCenter;
 class EpollEventPollerImpl : public EventPoller {
  public:
   explicit EpollEventPollerImpl(int id, size_t max_connections)
-      : id_(id),
-        pipe_read_fd_(-1),
-        pipe_write_fd_(-1),
-        epoll_fd_(-1),
-        epoll_events_(max_connections) {
+    : id_(id),
+    interrupter_(NULL),
+    epoll_fd_(-1),
+    epoll_events_(max_connections) {
   }
 
   ~EpollEventPollerImpl() = default;
@@ -78,8 +78,7 @@ class EpollEventPollerImpl : public EventPoller {
   // We first add the pipe_read_fd_ to the epoll events. When one thread wants
   // to interrupt the poll thread, we can write a byte to pipe_write_fd_ of the
   // pipe, the epoll thread will be waken up from epoll_wait()
-  int pipe_read_fd_;
-  int pipe_write_fd_;
+  Interrupter *interrupter_ { nullptr };
 
   int epoll_fd_;
 

@@ -58,12 +58,14 @@ bool EpollEventPollerImpl::Init(std::shared_ptr<EventCenter> event_center) {
     return false;
   }
 
-  Event ev { pipe_read_fd_, static_cast<int>(Event::Type::kRead) };
+  Event ev { interrupter_->get_read_fd(), 
+             static_cast<int>(Event::Type::kRead) };
   return AddEpollEvent(ev);
 }
 
 bool EpollEventPollerImpl::Poll() {
   // before starting polling, we first process all the pending command events
+  assert(interrupter_);
   if (!ProcessInterrupt()) {
     return false;
   }
@@ -83,7 +85,7 @@ bool EpollEventPollerImpl::Poll() {
 
   for (auto i = 0; i < count; ++i) {
     auto fd = epoll_events_[i].data.fd;
-    if (fd == pipe_read_fd_) { // we have some command events to be processed
+    if (fd == interrupter_->get_read_fd()) { // we have some command events to be processed
       if (!ProcessInterrupt()) {
         return false;
       }
@@ -110,11 +112,15 @@ bool EpollEventPollerImpl::Poll() {
 }
 
 bool EpollEventPollerImpl::Interrupt() {
+#if 0
   char byte = 0;
   if (pipe_write_fd_ < 0 || ::write(pipe_write_fd_, &byte, 1) < 0) {
     return false;
   }
   return true;
+#endif
+  assert(interrupter_);
+  return interrupter_->Interrupt();
 }
 
 void EpollEventPollerImpl::Shutdown() {
@@ -145,6 +151,7 @@ bool EpollEventPollerImpl::ProcessCommand(const Command& command) {
 }
 
 bool EpollEventPollerImpl::CreateInterrupter() {
+#if 0
   int pipe_fd_pair[2] { -1, -1 };
   if (::pipe(pipe_fd_pair) < 0) {
     return false;
@@ -160,19 +167,41 @@ bool EpollEventPollerImpl::CreateInterrupter() {
   ::fcntl(pipe_write_fd_, F_SETFD, FD_CLOEXEC);
 
   return true;
+#endif
+  Interrupter *interrupter = Interrupter::New();
+  if (interrupter == NULL) {
+    return false;
+  }
+  bool rc = interrupter->Create();
+  if (rc) {
+    interrupter_ = interrupter;
+  } else {
+    delete interrupter;
+  }
+  return rc;
 }
 
 void EpollEventPollerImpl::DestroyInterrupter() {
+#if 0
   ::close(pipe_read_fd_);
   ::close(pipe_write_fd_);
+#endif
+  if(interrupter_) {
+    delete interrupter_;
+    interrupter_ = NULL;
+  }
 }
 
 bool EpollEventPollerImpl::ProcessInterrupt() {
   // TODO(myjfm)
   // process error
+#if 0
   char buf[64];
   while (::read(pipe_read_fd_, buf, 64) == 64) { }
+#endif
 
+  assert(interrupter_);
+  interrupter_->Reset();
   std::shared_ptr<EventCenter> event_center = event_center_.lock();
   if (event_center) {
     return event_center->ProcessAllPendingCommands(id_);

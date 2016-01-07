@@ -33,7 +33,6 @@
 
 #include <tcp/event.h>
 #include <tcp/event_poller.h>
-#include <tcp/interrupter.h>
 
 #include <vector>
 #include <unordered_map>
@@ -42,17 +41,15 @@ namespace cnetpp {
 namespace tcp {
 
 class EventCenter;
+class Interrupter;
 
 class SelectEventPollerImpl : public EventPoller {
  public:
   explicit SelectEventPollerImpl(int id, size_t max_connections)
-      : id_(id),
-#if 0
-        pipe_read_fd_(-1),
-        pipe_write_fd_(-1),
-#endif
-        max_connections_(max_connections) {
-		  select_fds_.clear();
+    : id_(id),
+     interrupter_(NULL),
+     max_connections_(max_connections) {
+    select_fds_.clear();
   }
 
   ~SelectEventPollerImpl() = default;
@@ -80,31 +77,27 @@ class SelectEventPollerImpl : public EventPoller {
   // We first add the pipe_read_fd_ to the select read fdset. When one thread wants
   // to interrupt the poll thread, we can write a byte to pipe_write_fd_ of the
   // pipe, the epoll thread will be waken up from epoll_wait()
-#if 0
-  int pipe_read_fd_;
-  int pipe_write_fd_;
-#endif
-  Interrupter *interrupter_ { nullptr};
+  Interrupter *interrupter_ { nullptr };
   int max_connections_;
   class InternalFdInfo {
-    public:
-      enum Type {
-        kSelectNone   = 0x00,
-        kSelectRead   = 0x01,
-        kSelectWrite  = 0x02,
-        kSelectExcept = 0x04
-      };
-      explicit InternalFdInfo(int fd) : 
-        fd_(fd), 
-        mask_(kSelectRead | kSelectExcept) { }
-      InternalFdInfo() : fd_(-1), mask_(kSelectNone) { }
-      ~InternalFdInfo() = default;
-      int fd() const { return fd_;}
-      int GetMask() const { return mask_;}
-      void SetMask(int mask) { mask_ = mask;}
-    private:
-      int fd_;
-      int mask_;
+   public:
+    enum Type {
+      kSelectNone   = 0x00,
+      kSelectRead   = 0x01,
+      kSelectWrite  = 0x02,
+      kSelectExcept = 0x04
+    };
+    explicit InternalFdInfo(int fd) : 
+      fd_(fd), 
+      mask_(kSelectRead | kSelectExcept) { }
+    InternalFdInfo() : fd_(-1), mask_(kSelectNone) { }
+    ~InternalFdInfo() = default;
+    int fd() const { return fd_;}
+    int GetMask() const { return mask_;}
+    void SetMask(int mask) { mask_ = mask;}
+   private:
+    int fd_;
+    int mask_;
   };
 
   std::unordered_map<int, InternalFdInfo> select_fds_;

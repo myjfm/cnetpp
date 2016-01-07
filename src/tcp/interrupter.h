@@ -34,26 +34,27 @@ namespace tcp {
 // Currently, we only implements a interrupter based on pipe,
 // we will introduce eventfd interrupter in the future.
 class Interrupter {
-  public:
-    static Interrupter* New();
+ public:
+  static Interrupter* New();
 
-    // Destructor.
-    virtual ~Interrupter() {
-    }
+  // Destructor.
+  virtual ~Interrupter() {
+  }
 
-    virtual bool Create() = 0;
+  // Do initialing work
+  virtual bool Create() = 0;
 
-    // interrupt the epoll_wait call.
-    virtual bool Interrupt() = 0;
+  // Interrupt the poll thread from waiting.
+  virtual bool Interrupt() = 0;
 
-    // Reset the interrupt. Returns true if the epoll_wait call was interrupted.
-    virtual bool Reset() = 0;
+  // Poll thread calls this function to reset interrupt state
+  virtual bool Reset() = 0;
 
-    // Get the read descriptor to be passed to epoll.
-    virtual int get_read_fd() const = 0;
+  // Get the read descriptor to be passed to epoll.
+  virtual int get_read_fd() const = 0;
 
-  protected:
-    Interrupter() = default;
+ protected:
+  Interrupter() = default;
 };
 
 }  // namespace tcp
