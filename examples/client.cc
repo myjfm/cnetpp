@@ -17,13 +17,13 @@ class HttpClientHandler final {
   using HttpConnectionPtr = std::shared_ptr<cnetpp::http::HttpConnection>;
   bool OnConnected(HttpConnectionPtr http_connection) {
     std::cout << "Connected to the server" << std::endl;
-    std::shared_ptr<cnetpp::http::HttpPacket> http_request(
+    std::shared_ptr<cnetpp::http::HttpRequest> http_request(
         new cnetpp::http::HttpRequest);
-    static_cast<cnetpp::http::HttpRequest*>(http_request.get())->set_method(
-        cnetpp::http::HttpRequest::MethodType::kGet);
-    static_cast<cnetpp::http::HttpRequest*>(http_request.get())->set_uri("/");
-    static_cast<cnetpp::http::HttpRequest*>(http_request.get())->SetHttpHeader(
-        "Content-Length", "0");
+    http_request->set_method(cnetpp::http::HttpRequest::MethodType::kGet);
+    http_request->set_uri("/");
+    //http_request->SetHttpHeader("Content-Length", "0");
+    http_request->SetHttpHeader("Host", "www.qq.com");
+    http_request->SetHttpHeader("User-Agent", "cnetpp/1.0");
     return http_connection->SendPacket(http_request->ToString());
   }
   bool OnClosed(HttpConnectionPtr http_connection) {
@@ -35,10 +35,10 @@ class HttpClientHandler final {
     auto http_packet = http_connection->http_packet();
     auto http_response =
         static_cast<cnetpp::http::HttpResponse*>(http_packet.get());
-    std::cout << "status: "
-              << static_cast<int>(http_response->status()) << std::endl;
-    std::cout << "content-length: "
-              << http_response->GetHttpHeader("Content-Length") << std::endl;
+    std::string headers;
+    http_response->HttpHeadersToString(&headers);
+    std::cout << " headers is:" << std::endl;
+    std::cout << headers << std::endl;
     if (std::strtol(http_response->GetHttpHeader("Content-Length").c_str(),
                     nullptr,
                     10) > 0) {
@@ -87,8 +87,8 @@ int main(int argc, const char **argv) {
   );
   //cnetpp::base::IPAddress remote_ip("127.0.0.1");
   //cnetpp::base::EndPoint remote_end_point(remote_ip, 12346);
-  cnetpp::base::IPAddress remote_ip("61.135.169.121");
-  cnetpp::base::EndPoint remote_end_point(remote_ip, 80);
+  //cnetpp::base::IPAddress remote_ip("202.108.33.60");
+  //cnetpp::base::EndPoint remote_end_point(remote_ip, 80);
   if (!http_client.Launch(1)) {
     std::cout << "failed to launch the http_client" << std::endl;
     return 1;

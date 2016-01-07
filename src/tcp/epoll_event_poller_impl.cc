@@ -41,12 +41,6 @@
 namespace cnetpp {
 namespace tcp {
 
-std::shared_ptr<EventPoller> EventPoller::New(size_t id,
-                                              size_t max_connections) {
-  return std::shared_ptr<EventPoller>(
-      new EpollEventPollerImpl(id, max_connections));
-}
-
 bool EpollEventPollerImpl::Init(std::shared_ptr<EventCenter> event_center) {
   if (!event_center) {
     return false;

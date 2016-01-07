@@ -25,9 +25,11 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //
 #include "http_client.h"
+
+#include <netdb.h>
+
 #include "http_connection.h"
 #include "http_response.h"
-#include <netdb.h>
 
 namespace cnetpp {
 namespace http {
@@ -64,9 +66,14 @@ tcp::ConnectionId HttpClient::Connect(const base::EndPoint* remote,
 
 tcp::ConnectionId HttpClient::Connect(base::StringPiece url_str,
                                       const HttpOptions& http_options) {
+  std::string url_with_scheme = "";
+  if (!url_str.starts_with("http")) {
+    url_with_scheme.append("http://");
+  }
+  url_with_scheme.append(url_str.data(), url_str.length());
   // parse url
   base::Uri url;
-  if (!url.Parse(url_str.as_string())) {
+  if (!url.Parse(url_with_scheme)) {
     return tcp::kInvalidConnectionId;
   }
   
@@ -77,11 +84,15 @@ tcp::ConnectionId HttpClient::Connect(base::StringPiece url_str,
   hint.ai_family = AF_UNSPEC;
   hint.ai_socktype = SOCK_STREAM;
   std::string port_str = std::to_string(url.Port());
-  int rc = getaddrinfo(url.Hostname().c_str(), port_str.c_str(), &hint, &presults);
-  if (rc != 0 || !presults) {
+  if (getaddrinfo(url.Hostname().c_str(),
+                       port_str.c_str(),
+                       &hint,
+                       &presults) != 0 ||
+      !presults) {
     return tcp::kInvalidConnectionId;
   }
   base::EndPoint endpoint;
+  // just pick the first item in presults as the ip address
   if (!endpoint.FromSockAddr(*presults->ai_addr, presults->ai_addrlen)) {
     freeaddrinfo(presults);
     return tcp::kInvalidConnectionId;
