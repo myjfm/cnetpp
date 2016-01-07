@@ -73,10 +73,10 @@ class SelectEventPollerImpl : public EventPoller {
   int id_; // the id
   std::weak_ptr<EventCenter> event_center_;
 
-  // used for interrupt the epoll run loop.
-  // We first add the pipe_read_fd_ to the epoll events. When one thread wants
+  // used for interrupting the select run loop.
+  // We first add the pipe_read_fd_ to the select read fdset. When one thread wants
   // to interrupt the poll thread, we can write a byte to pipe_write_fd_ of the
-  // pipe, the epoll thread will be waken up from epoll_wait()
+  // pipe, the select thread will be waken up from select()
   int pipe_read_fd_;
   int pipe_write_fd_;
   int max_connections_;
