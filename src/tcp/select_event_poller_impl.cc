@@ -43,7 +43,6 @@ namespace cnetpp {
 namespace tcp {
 
 bool SelectEventPollerImpl::Init(std::shared_ptr<EventCenter> event_center) {
-  printf("create SelectEventPoller!\n");
   if (!event_center) {
     return false;
   }
@@ -58,6 +57,7 @@ bool SelectEventPollerImpl::Init(std::shared_ptr<EventCenter> event_center) {
 
 bool SelectEventPollerImpl::Poll() {
   // before starting polling, we first process all the pending command events
+  assert(interrupter_);
   if (!ProcessInterrupt()) {
     return false;
   }
@@ -82,7 +82,7 @@ bool SelectEventPollerImpl::Poll() {
 
   int num_processed_fd = 0;
   // wake up by interrupter
-  if(FD_ISSET(pipe_read_fd_, &rd_fds)) {
+  if(FD_ISSET(interrupter_->get_read_fd(), &rd_fds)) {
     if(!ProcessInterrupt()) {
       return false;
     }
@@ -122,11 +122,17 @@ bool SelectEventPollerImpl::Poll() {
 }
 
 bool SelectEventPollerImpl::Interrupt() {
+#if 0
   char byte = 0;
   if (pipe_write_fd_ < 0 || ::write(pipe_write_fd_, &byte, 1) < 0) {
     return false;
   }
   return true;
+#endif
+  if (interrupter_) {
+    return false;
+  }
+  return interrupter_->Interrupt();
 }
 
 void SelectEventPollerImpl::Shutdown() {
@@ -154,6 +160,7 @@ bool SelectEventPollerImpl::ProcessCommand(const Command& command) {
 }
 
 bool SelectEventPollerImpl::CreateInterrupter() {
+#if 0
   int pipe_fd_pair[2] { -1, -1 };
   if (::pipe(pipe_fd_pair) < 0) {
     return false;
@@ -167,21 +174,40 @@ bool SelectEventPollerImpl::CreateInterrupter() {
 
   ::fcntl(pipe_read_fd_, F_SETFD, FD_CLOEXEC);
   ::fcntl(pipe_write_fd_, F_SETFD, FD_CLOEXEC);
-
-  return true;
+#endif
+  Interrupter *interrupter = Interrupter::New();
+  if (interrupter == NULL) {
+    return false;
+  }
+  bool rc = interrupter->Create();
+  if (rc) {
+    interrupter_ = interrupter;
+  } else {
+    delete interrupter;
+  }
+  return rc;
 }
 
 void SelectEventPollerImpl::DestroyInterrupter() {
+#if 0
   ::close(pipe_read_fd_);
   ::close(pipe_write_fd_);
+#endif
+  if(interrupter_) {
+    delete interrupter_;
+    interrupter_ = NULL;
+  }
 }
 
 bool SelectEventPollerImpl::ProcessInterrupt() {
   // TODO(myjfm)
   // process error
+#if 0
   char buf[64];
   while (::read(pipe_read_fd_, buf, 64) == 64) { }
-
+#endif
+  assert(interrupter_);
+  interrupter_->Reset();
   std::shared_ptr<EventCenter> event_center = event_center_.lock();
   if (event_center) {
     return event_center->ProcessAllPendingCommands(id_);
@@ -229,9 +255,10 @@ int SelectEventPollerImpl::BuildFdsets(fd_set* rd_fdset,
   FD_ZERO(rd_fdset);
   FD_ZERO(wr_fdset);
   FD_ZERO(ex_fdset);
-  FD_SET(pipe_read_fd_, rd_fdset);
-  FD_SET(pipe_read_fd_, ex_fdset);
-  max_fd = max_fd < pipe_read_fd_ ? pipe_read_fd_ : max_fd;
+  int interrupter_rd_fd = interrupter_->get_read_fd();
+  FD_SET(interrupter_rd_fd, rd_fdset);
+  FD_SET(interrupter_rd_fd, ex_fdset);
+  max_fd = max_fd < interrupter_rd_fd ? interrupter_rd_fd : max_fd;
   for(auto fd_info_itr = select_fds_.begin();
       fd_info_itr != select_fds_.end();
       ++ fd_info_itr) {

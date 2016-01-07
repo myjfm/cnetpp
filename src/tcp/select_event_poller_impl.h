@@ -31,8 +31,9 @@
 #ifndef CNETPP_TCP_SELECT_EVENT_POLLER_IMPL_H_
 #define CNETPP_TCP_SELECT_EVENT_POLLER_IMPL_H_
 
-#include "event.h"
-#include "event_poller.h"
+#include <tcp/event.h>
+#include <tcp/event_poller.h>
+#include <tcp/interrupter.h>
 
 #include <vector>
 #include <unordered_map>
@@ -46,8 +47,10 @@ class SelectEventPollerImpl : public EventPoller {
  public:
   explicit SelectEventPollerImpl(int id, size_t max_connections)
       : id_(id),
+#if 0
         pipe_read_fd_(-1),
         pipe_write_fd_(-1),
+#endif
         max_connections_(max_connections) {
 		  select_fds_.clear();
   }
@@ -77,8 +80,11 @@ class SelectEventPollerImpl : public EventPoller {
   // We first add the pipe_read_fd_ to the epoll events. When one thread wants
   // to interrupt the poll thread, we can write a byte to pipe_write_fd_ of the
   // pipe, the epoll thread will be waken up from epoll_wait()
+#if 0
   int pipe_read_fd_;
   int pipe_write_fd_;
+#endif
+  Interrupter *interrupter_ { nullptr};
   int max_connections_;
   class InternalFdInfo {
     public:
