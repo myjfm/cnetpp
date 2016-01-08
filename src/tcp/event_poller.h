@@ -29,7 +29,8 @@
 
 #include <memory>
 
-#include "event.h"
+#include <tcp/event.h>
+#include <tcp/interrupter.h>
 
 namespace cnetpp {
 namespace tcp {
@@ -59,11 +60,11 @@ class EventPoller {
    * It includes,
    * - initilizing the interruptor,
    * - create an epoll file descriptor(if using epoll), or
-   * - create an event handler(if using MsgWaitForMultipleObjectsEx).
+   * - create an event handler(if using MsgWaitForMultipleObjectsEx for windows).
    * @param iEventCenter the EventCenter pointer
    * @return true if initialization is succeeded, else false.
    */
-  virtual bool Init(std::shared_ptr<EventCenter> event_center) = 0;
+  virtual bool Init(std::shared_ptr<EventCenter> event_center);
   
   /**
    * @breif Poll avaliable IO event & command.
@@ -82,7 +83,9 @@ class EventPoller {
    * EventPoller thread is shutting down, this method will be called.
    * @return true if the interruption is raised up successfully, else false.
    */
-  virtual bool Interrupt() = 0;
+  virtual bool Interrupt() {
+    return interrupter_->Interrupt();
+  }
   
   /**
    * @brief Shutdown the EventPoller.
@@ -92,13 +95,17 @@ class EventPoller {
    * - close the epoll file descriptor(if using epoll), or
    * - close the event handler(if using MsgWaitForMultipleObjectsEx).
    */
-  virtual void Shutdown() = 0;
+  virtual void Shutdown() {
+    interrupter_.reset();
+    DoShutdown();
+  }
 
   /**
-   * return Id of EventPoller instance
-   * @return Id of EventPoller instance
+   * @return the identifier of EventPoller instance
    */
-  virtual size_t Id() const = 0;
+  size_t id() const {
+    return id_;
+  }
 
   /**
    * Process Command from user thread or Connection callbacks.
@@ -106,7 +113,39 @@ class EventPoller {
    * @return true on success, false on failed
    * @note this function is called by EventCenter::ProcessAllPendingCommands
    */
-  virtual bool ProcessCommand(const Command& command) = 0;
+  virtual bool ProcessCommand(const Command& command);
+
+ protected:
+  EventPoller(int id, size_t max_connections)
+      : id_(id),
+        max_connections_(max_connections) {
+  }
+
+  // child classes should implement this method if it want to do some extra
+  // intializations.
+  virtual bool DoInit() {
+    return true;
+  }
+  // child classes should implement this method if it want to do some extra
+  // finalizations.
+  virtual void DoShutdown() {
+  }
+
+  virtual bool ProcessInterrupt();
+
+  virtual bool AddPollerEvent(Event&& event) = 0;
+  virtual bool ModifyPollerEvent(Event&& event) = 0;
+  virtual bool RemovePollerEvent(Event&& event) = 0;
+
+  int id_ { 0 }; // the id
+  size_t max_connections_ { 1024 };
+  std::weak_ptr<EventCenter> event_center_;
+
+  // used for interrupting the select run loop.
+  // We first add the pipe_read_fd_ to the select read fdset. When one thread wants
+  // to interrupt the poll thread, we can write a byte to pipe_write_fd_ of the
+  // pipe, the epoll thread will be waken up from epoll_wait()
+  std::unique_ptr<Interrupter> interrupter_;
 };
 
 }  // namespace tcp

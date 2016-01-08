@@ -30,11 +30,10 @@
 namespace cnetpp {
 namespace tcp {
 
-Interrupter* Interrupter::New() {
-  return new PipeInterrupterImpl();
+std::unique_ptr<Interrupter> Interrupter::New() {
+  return std::unique_ptr<Interrupter>(new PipeInterrupterImpl());
 }
 
 }  // namespace tcp
 }  // namespace cnetpp
-
 

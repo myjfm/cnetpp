@@ -24,9 +24,10 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 //
-
 #ifndef CNETPP_TCP_INTERRUPTER_H_
 #define CNETPP_TCP_INTERRUPTER_H_
+
+#include <memory>
 
 namespace cnetpp {
 namespace tcp {
@@ -35,7 +36,7 @@ namespace tcp {
 // we will introduce eventfd interrupter in the future.
 class Interrupter {
  public:
-  static Interrupter* New();
+  static std::unique_ptr<Interrupter> New();
 
   // Destructor.
   virtual ~Interrupter() {

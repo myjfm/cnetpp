@@ -55,14 +55,37 @@ class Command final {
         connection_(connection) {
   }
 
-  ~Command() = default;
-  Command(Command&&) = default;
-  Command& operator=(Command&&) = default;
+  ~Command() {
+  }
+  Command(Command&& c) {
+    if (this != &c) {
+      type_ = c.type_;
+      connection_ = std::move(c.connection_);
+    }
+  }
+  Command& operator=(Command&& c) {
+    if (this != &c) {
+      type_ = c.type_;
+      connection_ = std::move(c.connection_);
+    }
+    return *this;
+  }
 
   // Two commands will handle a same tcp connection handler if one is copied
   // from another
-  Command(const Command&) = default;
-  Command& operator=(const Command&) = default;
+  Command(const Command& c) {
+    if (this != &c) {
+      type_ = c.type_;
+      connection_ = c.connection_;
+    }
+  }
+  Command& operator=(const Command& c) {
+    if (this != &c) {
+      type_ = c.type_;
+      connection_ = c.connection_;
+    }
+    return *this;
+  }
 
   int type() const {
     return type_;

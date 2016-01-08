@@ -32,16 +32,13 @@ class HttpClientHandler final {
     return true;
   }
   bool OnReceived(HttpConnectionPtr http_connection) {
-    auto http_packet = http_connection->http_packet();
-    auto http_response =
-        static_cast<cnetpp::http::HttpResponse*>(http_packet.get());
+    auto http_response = std::static_pointer_cast<cnetpp::http::HttpResponse>(
+        http_connection->http_packet());
     std::string headers;
     http_response->HttpHeadersToString(&headers);
     std::cout << " headers is:" << std::endl;
     std::cout << headers << std::endl;
-    if (std::strtol(http_response->GetHttpHeader("Content-Length").c_str(),
-                    nullptr,
-                    10) > 0) {
+    if (http_response->http_body().length() > 0) {
       std::cout << "body: " << http_response->http_body() << std::endl;
     }
     http_connection->MarkAsClosed();

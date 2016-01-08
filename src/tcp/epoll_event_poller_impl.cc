@@ -41,31 +41,19 @@
 namespace cnetpp {
 namespace tcp {
 
-bool EpollEventPollerImpl::Init(std::shared_ptr<EventCenter> event_center) {
-  if (!event_center) {
-    return false;
-  }
-
-  event_center_ = event_center;
-
-  if (!CreateInterrupter()) {
-    return false;
-  }
-
+bool EpollEventPollerImpl::DoInit() {
   epoll_fd_ = ::epoll_create1(EPOLL_CLOEXEC);
   if (epoll_fd_ < 0) {
-    DestroyInterrupter();
     return false;
   }
 
   Event ev { interrupter_->get_read_fd(), 
              static_cast<int>(Event::Type::kRead) };
-  return AddEpollEvent(ev);
+  return AddPollerEvent(std::move(ev));
 }
 
 bool EpollEventPollerImpl::Poll() {
   // before starting polling, we first process all the pending command events
-  assert(interrupter_);
   if (!ProcessInterrupt()) {
     return false;
   }
@@ -85,7 +73,8 @@ bool EpollEventPollerImpl::Poll() {
 
   for (auto i = 0; i < count; ++i) {
     auto fd = epoll_events_[i].data.fd;
-    if (fd == interrupter_->get_read_fd()) { // we have some command events to be processed
+    if (fd == interrupter_->get_read_fd()) {
+      // we have some command events to be processed
       if (!ProcessInterrupt()) {
         return false;
       }
@@ -111,105 +100,7 @@ bool EpollEventPollerImpl::Poll() {
   return true;
 }
 
-bool EpollEventPollerImpl::Interrupt() {
-#if 0
-  char byte = 0;
-  if (pipe_write_fd_ < 0 || ::write(pipe_write_fd_, &byte, 1) < 0) {
-    return false;
-  }
-  return true;
-#endif
-  assert(interrupter_);
-  return interrupter_->Interrupt();
-}
-
-void EpollEventPollerImpl::Shutdown() {
-  DestroyInterrupter();
-  if (epoll_fd_ >= 0) {
-    ::close(epoll_fd_);
-  }
-}
-
-bool EpollEventPollerImpl::ProcessCommand(const Command& command) {
-  int type = static_cast<int>(Event::Type::kRead);
-  if (static_cast<int>(command.type()) &
-      static_cast<int>(Command::Type::kWriteable)) {
-    type |= static_cast<int>(Event::Type::kWrite);
-  }
-  if (command.type() & static_cast<int>(Command::Type::kAddConn)) {
-    return AddEpollEvent(Event(command.connection()->socket().fd(), type));
-  } else if (command.type() & static_cast<int>(Command::Type::kRemoveConn)) {
-    type |= static_cast<int>(Event::Type::kClose);
-    return RemoveEpollEvent(Event(command.connection()->socket().fd(), type));
-  } else if (command.type() & static_cast<int>(Command::Type::kReadable) ||
-      command.type() & static_cast<int>(Command::Type::kWriteable)) {
-    return ModifyEpollEvent(Event(command.connection()->socket().fd(), type));
-  } else {
-    return false;
-  }
-  return false;
-}
-
-bool EpollEventPollerImpl::CreateInterrupter() {
-#if 0
-  int pipe_fd_pair[2] { -1, -1 };
-  if (::pipe(pipe_fd_pair) < 0) {
-    return false;
-  }
-
-  pipe_read_fd_ = pipe_fd_pair[0];
-  pipe_write_fd_ = pipe_fd_pair[1];
-
-  ::fcntl(pipe_read_fd_, F_SETFL, O_NONBLOCK);
-  ::fcntl(pipe_write_fd_, F_SETFL, O_NONBLOCK);
-
-  ::fcntl(pipe_read_fd_, F_SETFD, FD_CLOEXEC);
-  ::fcntl(pipe_write_fd_, F_SETFD, FD_CLOEXEC);
-
-  return true;
-#endif
-  Interrupter *interrupter = Interrupter::New();
-  if (interrupter == NULL) {
-    return false;
-  }
-  bool rc = interrupter->Create();
-  if (rc) {
-    interrupter_ = interrupter;
-  } else {
-    delete interrupter;
-  }
-  return rc;
-}
-
-void EpollEventPollerImpl::DestroyInterrupter() {
-#if 0
-  ::close(pipe_read_fd_);
-  ::close(pipe_write_fd_);
-#endif
-  if(interrupter_) {
-    delete interrupter_;
-    interrupter_ = NULL;
-  }
-}
-
-bool EpollEventPollerImpl::ProcessInterrupt() {
-  // TODO(myjfm)
-  // process error
-#if 0
-  char buf[64];
-  while (::read(pipe_read_fd_, buf, 64) == 64) { }
-#endif
-
-  assert(interrupter_);
-  interrupter_->Reset();
-  std::shared_ptr<EventCenter> event_center = event_center_.lock();
-  if (event_center) {
-    return event_center->ProcessAllPendingCommands(id_);
-  }
-  return false;
-}
-
-bool EpollEventPollerImpl::AddEpollEvent(const Event& ev) {
+bool EpollEventPollerImpl::AddPollerEvent(Event&& ev) {
   struct epoll_event epoll_ev {};
   epoll_ev.data.fd = ev.fd();
   epoll_ev.events = EPOLLIN;
@@ -219,7 +110,7 @@ bool EpollEventPollerImpl::AddEpollEvent(const Event& ev) {
   return ::epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, ev.fd(), &epoll_ev) == 0;
 }
 
-bool EpollEventPollerImpl::ModifyEpollEvent(const Event& ev) {
+bool EpollEventPollerImpl::ModifyPollerEvent(Event&& ev) {
   struct epoll_event epoll_ev {};
   epoll_ev.data.fd = ev.fd();
   epoll_ev.events = EPOLLIN;
@@ -229,7 +120,7 @@ bool EpollEventPollerImpl::ModifyEpollEvent(const Event& ev) {
   return ::epoll_ctl(epoll_fd_, EPOLL_CTL_MOD, ev.fd(), &epoll_ev) == 0;
 }
 
-bool EpollEventPollerImpl::RemoveEpollEvent(const Event& ev) {
+bool EpollEventPollerImpl::RemovePollerEvent(Event&& ev) {
   if (ev.mask() & static_cast<int>(Event::Type::kClose)) {
     return ::epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, ev.fd(), NULL) == 0;
   }
