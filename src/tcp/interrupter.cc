@@ -24,78 +24,17 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 //
-#ifndef __linux__
-#error "Your operating system seems not be linux!"
-#endif
-
-#ifndef CNETPP_TCP_EPOLL_EVENT_POLLER_IMPL_H_
-#define CNETPP_TCP_EPOLL_EVENT_POLLER_IMPL_H_
-
-#include <tcp/event.h>
-#include <tcp/event_poller.h>
 #include <tcp/interrupter.h>
-
-#include <sys/epoll.h>
-
-#include <vector>
+#include <tcp/pipe_interrupter_impl.h>
 
 namespace cnetpp {
 namespace tcp {
 
-class EventCenter;
-
-class EpollEventPollerImpl : public EventPoller {
- public:
-  explicit EpollEventPollerImpl(int id, size_t max_connections)
-    : id_(id),
-    interrupter_(NULL),
-    epoll_fd_(-1),
-    epoll_events_(max_connections) {
-  }
-
-  ~EpollEventPollerImpl() = default;
-
- protected:
-  bool Init(std::shared_ptr<EventCenter> event_center) override;
-
-  bool Poll() override;
-
-  bool Interrupt() override;
-
-  void Shutdown() override;
-
-  size_t Id() const override {
-    return id_;
-  }
-
-  bool ProcessCommand(const Command& command) override;
-
- private:
-  int id_; // the id
-  std::weak_ptr<EventCenter> event_center_;
-
-  // used for interrupt the epoll run loop.
-  // We first add the pipe_read_fd_ to the epoll events. When one thread wants
-  // to interrupt the poll thread, we can write a byte to pipe_write_fd_ of the
-  // pipe, the epoll thread will be waken up from epoll_wait()
-  Interrupter *interrupter_ { nullptr };
-
-  int epoll_fd_;
-
-  std::vector<epoll_event> epoll_events_;
-
-  bool CreateInterrupter();
-  void DestroyInterrupter();
-
-  bool ProcessInterrupt();
-
-  bool AddEpollEvent(const Event& ev);
-  bool ModifyEpollEvent(const Event& ev);
-  bool RemoveEpollEvent(const Event& ev);
-};
+Interrupter* Interrupter::New() {
+  return new PipeInterrupterImpl();
+}
 
 }  // namespace tcp
 }  // namespace cnetpp
 
-#endif  // CNETPP_TCP_EPOLL_EVENT_POLLER_IMPL_H_
 

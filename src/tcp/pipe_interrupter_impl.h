@@ -24,78 +24,47 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 //
-#ifndef __linux__
-#error "Your operating system seems not be linux!"
-#endif
 
-#ifndef CNETPP_TCP_EPOLL_EVENT_POLLER_IMPL_H_
-#define CNETPP_TCP_EPOLL_EVENT_POLLER_IMPL_H_
+#ifndef CNETPP_TCP_PIPE_INTERRUPTER_IMPL_H_
+#define CNETPP_TCP_PIPE_INTERRUPTER_IMPL_H_
 
-#include <tcp/event.h>
-#include <tcp/event_poller.h>
 #include <tcp/interrupter.h>
-
-#include <sys/epoll.h>
-
-#include <vector>
 
 namespace cnetpp {
 namespace tcp {
 
-class EventCenter;
-
-class EpollEventPollerImpl : public EventPoller {
+class PipeInterrupterImpl : public Interrupter {
  public:
-  explicit EpollEventPollerImpl(int id, size_t max_connections)
-    : id_(id),
-    interrupter_(NULL),
-    epoll_fd_(-1),
-    epoll_events_(max_connections) {
+  PipeInterrupterImpl() : read_fd_(-1), write_fd_(-1) {
   }
 
-  ~EpollEventPollerImpl() = default;
+  ~PipeInterrupterImpl();
 
- protected:
-  bool Init(std::shared_ptr<EventCenter> event_center) override;
+  bool Create();
 
-  bool Poll() override;
+  bool Interrupt();
 
-  bool Interrupt() override;
+  bool Reset();
 
-  void Shutdown() override;
-
-  size_t Id() const override {
-    return id_;
+  int get_read_fd() const {
+    return read_fd_;
   }
-
-  bool ProcessCommand(const Command& command) override;
 
  private:
-  int id_; // the id
-  std::weak_ptr<EventCenter> event_center_;
+  // The read end of a connection used to interrupt the poll thread from waiting.
+  // This file descriptor is passed to epoll such that when it is time to stop,
+  // a single byte will be written on the other end of the connection and this
+  // descriptor will become readable.
+  int read_fd_;
 
-  // used for interrupt the epoll run loop.
-  // We first add the pipe_read_fd_ to the epoll events. When one thread wants
-  // to interrupt the poll thread, we can write a byte to pipe_write_fd_ of the
-  // pipe, the epoll thread will be waken up from epoll_wait()
-  Interrupter *interrupter_ { nullptr };
-
-  int epoll_fd_;
-
-  std::vector<epoll_event> epoll_events_;
-
-  bool CreateInterrupter();
-  void DestroyInterrupter();
-
-  bool ProcessInterrupt();
-
-  bool AddEpollEvent(const Event& ev);
-  bool ModifyEpollEvent(const Event& ev);
-  bool RemoveEpollEvent(const Event& ev);
+  // The write end of a connection used to interrupt the poll thread from waiting.
+  // A single byte may be written to this to wake up the thread from wait which is
+  // waiting for the other end to become readable.
+  int write_fd_;
 };
 
 }  // namespace tcp
 }  // namespace cnetpp
 
-#endif  // CNETPP_TCP_EPOLL_EVENT_POLLER_IMPL_H_
+#endif // CNETPP_TCP_PIPE_INTERRUPTER_IMPL_H_
 

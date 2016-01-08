@@ -1,10 +1,10 @@
 #cmake_minimum_required(VERSION 3.1)
 cmake_minimum_required(VERSION 2.8)
 project(cnetpp)
-
+add_definitions(-DUSE_SELECT)
 include_directories("${CMAKE_SOURCE_DIR}/src" )
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -std=c++11")
 
 file(GLOB HTTP_HEADER_FILES "src/http/*.h")
 file(GLOB HTTP_SOURCE_FILES "src/http/*.cc")
@@ -40,11 +40,9 @@ target_link_libraries(cnetpp_client_test cnetpp pthread)
 
 # Add unittests
 add_subdirectory(third_party/gtest-1.7.0)
-set(GTEST_ROOT "third_party/gtest-1.7.0")
-link_directories(${GTEST_ROOT}/lib)
 aux_source_directory(unittests UNITTEST_FILES)
 add_executable(cnetpp_unittest ${UNITTEST_FILES})
-target_include_directories(cnetpp_unittest PRIVATE ${GTEST_ROOT}/include unittest)
+target_include_directories(cnetpp_unittest PRIVATE third_party/gtest-1.7.0/include unittest)
 target_link_libraries(cnetpp_unittest cnetpp gtest gtest_main pthread)
 
 enable_testing()

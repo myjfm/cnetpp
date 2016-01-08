@@ -28,7 +28,9 @@
 #error "Your operating system seems not be linux!"
 #endif
 
-#include "epoll_event_poller_impl.h"
+#include "select_event_poller_impl.h"
+#include <tcp/interrupter.h>
+#include <sys/select.h>
 
 #include <errno.h>
 #include <unistd.h>
@@ -41,7 +43,7 @@
 namespace cnetpp {
 namespace tcp {
 
-bool EpollEventPollerImpl::Init(std::shared_ptr<EventCenter> event_center) {
+bool SelectEventPollerImpl::Init(std::shared_ptr<EventCenter> event_center) {
   if (!event_center) {
     return false;
   }
@@ -51,19 +53,10 @@ bool EpollEventPollerImpl::Init(std::shared_ptr<EventCenter> event_center) {
   if (!CreateInterrupter()) {
     return false;
   }
-
-  epoll_fd_ = ::epoll_create1(EPOLL_CLOEXEC);
-  if (epoll_fd_ < 0) {
-    DestroyInterrupter();
-    return false;
-  }
-
-  Event ev { interrupter_->get_read_fd(), 
-             static_cast<int>(Event::Type::kRead) };
-  return AddEpollEvent(ev);
+  return true;
 }
 
-bool EpollEventPollerImpl::Poll() {
+bool SelectEventPollerImpl::Poll() {
   // before starting polling, we first process all the pending command events
   assert(interrupter_);
   if (!ProcessInterrupt()) {
@@ -71,37 +64,55 @@ bool EpollEventPollerImpl::Poll() {
   }
 
   int count { 0 };
+  fd_set rd_fds, wr_fds, ex_fds;
+  int max_fd;
+  int nfds = select_fds_.size();
+  max_fd = BuildFdsets(&rd_fds, &wr_fds, &ex_fds);
+  if(max_fd < 0) {
+    return true;
+  }
+ 
   do {
-    count = ::epoll_wait(epoll_fd_,
-                         &epoll_events_[0],
-                         epoll_events_.size(),
-                         -1);
+    count = ::select(max_fd + 1, &rd_fds, &wr_fds, &ex_fds, NULL);
   } while (count == -1 &&
-      cnetpp::concurrency::ThisThread::GetLastError() == EINTR);
+           cnetpp::concurrency::ThisThread::GetLastError() == EINTR);
 
   if (count < 0) {
     return false;
   }
 
-  for (auto i = 0; i < count; ++i) {
-    auto fd = epoll_events_[i].data.fd;
-    if (fd == interrupter_->get_read_fd()) { // we have some command events to be processed
-      if (!ProcessInterrupt()) {
-        return false;
-      }
-    } else {
-      Event event(fd);
-      if (epoll_events_[i].events & (EPOLLHUP | EPOLLERR)) {
-        event.mutable_mask() |= static_cast<int>(Event::Type::kClose);
-      } else {
-        if (epoll_events_[i].events & (EPOLLIN | EPOLLRDBAND | EPOLLRDNORM)) {
-          event.mutable_mask() |= static_cast<int>(Event::Type::kRead);
-        }
-        if (epoll_events_[i].events & (EPOLLOUT | EPOLLWRNORM | EPOLLWRBAND)) {
-          event.mutable_mask() |= static_cast<int>(Event::Type::kWrite);
-        }
-      }
+  int num_processed_fd = 0;
+  // wake up by interrupter
+  if(FD_ISSET(interrupter_->get_read_fd(), &rd_fds)) {
+    if(!ProcessInterrupt()) {
+      return false;
+    }
+    ++num_processed_fd;
+  }
 
+  for (auto fd_info_itr = select_fds_.begin();
+       fd_info_itr != select_fds_.end() && num_processed_fd < nfds;
+       ++fd_info_itr) {
+    assert(fd_info_itr->first == fd_info_itr->second.fd());
+    bool has_event = false;
+    int fd = fd_info_itr->second.fd();
+    Event event(fd);
+    if(FD_ISSET(fd, &ex_fds)) {
+      has_event = true;
+      event.mutable_mask() |= static_cast<int>(Event::Type::kClose);
+      ++num_processed_fd;
+    }
+    if(FD_ISSET(fd, &rd_fds)) {
+      has_event = true;
+      event.mutable_mask() |= static_cast<int>(Event::Type::kRead);
+      ++num_processed_fd;
+    }
+    if(FD_ISSET(fd, &wr_fds)) {
+      has_event = true;
+      event.mutable_mask() |= static_cast<int>(Event::Type::kWrite);
+      ++num_processed_fd;
+    }
+    if(has_event) {
       std::shared_ptr<EventCenter> event_center = event_center_.lock();
       if (!event_center || !event_center->ProcessEvent(event, id_)) {
         return false;
@@ -111,7 +122,7 @@ bool EpollEventPollerImpl::Poll() {
   return true;
 }
 
-bool EpollEventPollerImpl::Interrupt() {
+bool SelectEventPollerImpl::Interrupt() {
 #if 0
   char byte = 0;
   if (pipe_write_fd_ < 0 || ::write(pipe_write_fd_, &byte, 1) < 0) {
@@ -123,34 +134,31 @@ bool EpollEventPollerImpl::Interrupt() {
   return interrupter_->Interrupt();
 }
 
-void EpollEventPollerImpl::Shutdown() {
+void SelectEventPollerImpl::Shutdown() {
   DestroyInterrupter();
-  if (epoll_fd_ >= 0) {
-    ::close(epoll_fd_);
-  }
 }
 
-bool EpollEventPollerImpl::ProcessCommand(const Command& command) {
+bool SelectEventPollerImpl::ProcessCommand(const Command& command) {
   int type = static_cast<int>(Event::Type::kRead);
   if (static_cast<int>(command.type()) &
       static_cast<int>(Command::Type::kWriteable)) {
     type |= static_cast<int>(Event::Type::kWrite);
   }
   if (command.type() & static_cast<int>(Command::Type::kAddConn)) {
-    return AddEpollEvent(Event(command.connection()->socket().fd(), type));
+    return ProcessAddCommand(command);
   } else if (command.type() & static_cast<int>(Command::Type::kRemoveConn)) {
     type |= static_cast<int>(Event::Type::kClose);
-    return RemoveEpollEvent(Event(command.connection()->socket().fd(), type));
+    return ProcessRemoveCommand(command);
   } else if (command.type() & static_cast<int>(Command::Type::kReadable) ||
-      command.type() & static_cast<int>(Command::Type::kWriteable)) {
-    return ModifyEpollEvent(Event(command.connection()->socket().fd(), type));
+             command.type() & static_cast<int>(Command::Type::kWriteable)) {
+    return ProcessModifyCommand(command);
   } else {
     return false;
   }
   return false;
 }
 
-bool EpollEventPollerImpl::CreateInterrupter() {
+bool SelectEventPollerImpl::CreateInterrupter() {
 #if 0
   int pipe_fd_pair[2] { -1, -1 };
   if (::pipe(pipe_fd_pair) < 0) {
@@ -165,8 +173,6 @@ bool EpollEventPollerImpl::CreateInterrupter() {
 
   ::fcntl(pipe_read_fd_, F_SETFD, FD_CLOEXEC);
   ::fcntl(pipe_write_fd_, F_SETFD, FD_CLOEXEC);
-
-  return true;
 #endif
   Interrupter *interrupter = Interrupter::New();
   if (interrupter == NULL) {
@@ -181,7 +187,7 @@ bool EpollEventPollerImpl::CreateInterrupter() {
   return rc;
 }
 
-void EpollEventPollerImpl::DestroyInterrupter() {
+void SelectEventPollerImpl::DestroyInterrupter() {
 #if 0
   ::close(pipe_read_fd_);
   ::close(pipe_write_fd_);
@@ -192,14 +198,13 @@ void EpollEventPollerImpl::DestroyInterrupter() {
   }
 }
 
-bool EpollEventPollerImpl::ProcessInterrupt() {
+bool SelectEventPollerImpl::ProcessInterrupt() {
   // TODO(myjfm)
   // process error
 #if 0
   char buf[64];
   while (::read(pipe_read_fd_, buf, 64) == 64) { }
 #endif
-
   assert(interrupter_);
   interrupter_->Reset();
   std::shared_ptr<EventCenter> event_center = event_center_.lock();
@@ -209,33 +214,68 @@ bool EpollEventPollerImpl::ProcessInterrupt() {
   return false;
 }
 
-bool EpollEventPollerImpl::AddEpollEvent(const Event& ev) {
-  struct epoll_event epoll_ev {};
-  epoll_ev.data.fd = ev.fd();
-  epoll_ev.events = EPOLLIN;
-  if (ev.mask() & static_cast<int>(Event::Type::kWrite)) {
-    epoll_ev.events |= EPOLLOUT;
+bool SelectEventPollerImpl::ProcessAddCommand(const Command& command) {
+  if (select_fds_.size() > max_connections_) {
+    return false;
   }
-  return ::epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, ev.fd(), &epoll_ev) == 0;
+  int fd = command.connection()->socket().fd();
+  InternalFdInfo fd_info(fd);
+  select_fds_.insert(std::make_pair(fd, fd_info));
+  return true;
 }
 
-bool EpollEventPollerImpl::ModifyEpollEvent(const Event& ev) {
-  struct epoll_event epoll_ev {};
-  epoll_ev.data.fd = ev.fd();
-  epoll_ev.events = EPOLLIN;
-  if (ev.mask() & static_cast<int>(Event::Type::kWrite)) {
-    epoll_ev.events |= EPOLLOUT;
+bool SelectEventPollerImpl::ProcessModifyCommand(const Command& command) {
+  auto i = select_fds_.find(command.connection()->socket().fd());
+  if (i != select_fds_.end()) {
+    int mask = InternalFdInfo::Type::kSelectExcept | 
+               InternalFdInfo::Type::kSelectRead;
+    if (command.type() & static_cast<int>(Command::Type::kWriteable)) {
+      mask |= InternalFdInfo::Type::kSelectWrite;
+    }
+    i->second.SetMask(mask);
   }
-  return ::epoll_ctl(epoll_fd_, EPOLL_CTL_MOD, ev.fd(), &epoll_ev) == 0;
+  return true;
 }
 
-bool EpollEventPollerImpl::RemoveEpollEvent(const Event& ev) {
-  if (ev.mask() & static_cast<int>(Event::Type::kClose)) {
-    return ::epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, ev.fd(), NULL) == 0;
+bool SelectEventPollerImpl::ProcessRemoveCommand(const Command& command) {
+  int fd = command.connection()->socket().fd();
+  auto i = select_fds_.find(fd);
+  if(i != select_fds_.end()) {
+    select_fds_.erase(i);
   }
-  return false;
+  return true;
 }
 
+int SelectEventPollerImpl::BuildFdsets(fd_set* rd_fdset, 
+                                       fd_set* wr_fdset, 
+                                       fd_set* ex_fdset) {
+  int max_fd = -1;
+  assert(rd_fdset && wr_fdset && ex_fdset);
+  FD_ZERO(rd_fdset);
+  FD_ZERO(wr_fdset);
+  FD_ZERO(ex_fdset);
+  int interrupter_rd_fd = interrupter_->get_read_fd();
+  assert(interrupter_rd_fd >= 0);
+  FD_SET(interrupter_rd_fd, rd_fdset);
+  FD_SET(interrupter_rd_fd, ex_fdset);
+  max_fd = max_fd < interrupter_rd_fd ? interrupter_rd_fd : max_fd;
+  for(auto fd_info_itr = select_fds_.begin();
+      fd_info_itr != select_fds_.end();
+      ++ fd_info_itr) {
+    int fd = fd_info_itr->first;
+    if(fd_info_itr->second.GetMask() & InternalFdInfo::Type::kSelectRead) {
+      FD_SET(fd, rd_fdset);
+    }
+    if(fd_info_itr->second.GetMask() & InternalFdInfo::Type::kSelectRead) {
+      FD_SET(fd, wr_fdset);
+    }
+    if(fd_info_itr->second.GetMask() & InternalFdInfo::Type::kSelectRead) {
+      FD_SET(fd, ex_fdset);
+    }
+    max_fd = max_fd < fd ? fd : max_fd;
+  }
+  return max_fd;
+}
 }  // namespace tcp
 }  // namespace cnetpp
 

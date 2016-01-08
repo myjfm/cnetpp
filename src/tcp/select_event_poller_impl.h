@@ -28,32 +28,31 @@
 #error "Your operating system seems not be linux!"
 #endif
 
-#ifndef CNETPP_TCP_EPOLL_EVENT_POLLER_IMPL_H_
-#define CNETPP_TCP_EPOLL_EVENT_POLLER_IMPL_H_
+#ifndef CNETPP_TCP_SELECT_EVENT_POLLER_IMPL_H_
+#define CNETPP_TCP_SELECT_EVENT_POLLER_IMPL_H_
 
 #include <tcp/event.h>
 #include <tcp/event_poller.h>
-#include <tcp/interrupter.h>
-
-#include <sys/epoll.h>
 
 #include <vector>
+#include <unordered_map>
 
 namespace cnetpp {
 namespace tcp {
 
 class EventCenter;
+class Interrupter;
 
-class EpollEventPollerImpl : public EventPoller {
+class SelectEventPollerImpl : public EventPoller {
  public:
-  explicit EpollEventPollerImpl(int id, size_t max_connections)
+  explicit SelectEventPollerImpl(int id, size_t max_connections)
     : id_(id),
-    interrupter_(NULL),
-    epoll_fd_(-1),
-    epoll_events_(max_connections) {
+     interrupter_(NULL),
+     max_connections_(max_connections) {
+    select_fds_.clear();
   }
 
-  ~EpollEventPollerImpl() = default;
+  ~SelectEventPollerImpl() = default;
 
  protected:
   bool Init(std::shared_ptr<EventCenter> event_center) override;
@@ -74,28 +73,48 @@ class EpollEventPollerImpl : public EventPoller {
   int id_; // the id
   std::weak_ptr<EventCenter> event_center_;
 
-  // used for interrupt the epoll run loop.
-  // We first add the pipe_read_fd_ to the epoll events. When one thread wants
+  // used for interrupting the select run loop.
+  // We first add the pipe_read_fd_ to the select read fdset. When one thread wants
   // to interrupt the poll thread, we can write a byte to pipe_write_fd_ of the
   // pipe, the epoll thread will be waken up from epoll_wait()
   Interrupter *interrupter_ { nullptr };
+  int max_connections_;
+  class InternalFdInfo {
+   public:
+    enum Type {
+      kSelectNone   = 0x00,
+      kSelectRead   = 0x01,
+      kSelectWrite  = 0x02,
+      kSelectExcept = 0x04
+    };
+    explicit InternalFdInfo(int fd) : 
+      fd_(fd), 
+      mask_(kSelectRead | kSelectExcept) { }
+    InternalFdInfo() : fd_(-1), mask_(kSelectNone) { }
+    ~InternalFdInfo() = default;
+    int fd() const { return fd_;}
+    int GetMask() const { return mask_;}
+    void SetMask(int mask) { mask_ = mask;}
+   private:
+    int fd_;
+    int mask_;
+  };
 
-  int epoll_fd_;
-
-  std::vector<epoll_event> epoll_events_;
+  std::unordered_map<int, InternalFdInfo> select_fds_;
 
   bool CreateInterrupter();
   void DestroyInterrupter();
 
   bool ProcessInterrupt();
 
-  bool AddEpollEvent(const Event& ev);
-  bool ModifyEpollEvent(const Event& ev);
-  bool RemoveEpollEvent(const Event& ev);
+  bool ProcessAddCommand(const Command& command);
+  bool ProcessModifyCommand(const Command& command);
+  bool ProcessRemoveCommand(const Command& command);
+  int BuildFdsets(fd_set* rd_fdset, fd_set* wr_fdset, fd_set* ex_fdset);
 };
 
 }  // namespace tcp
 }  // namespace cnetpp
 
-#endif  // CNETPP_TCP_EPOLL_EVENT_POLLER_IMPL_H_
+#endif  // CNETPP_TCP_SELECT_EVENT_POLLER_IMPL_H_
 
