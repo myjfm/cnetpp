@@ -58,6 +58,9 @@ class HttpClient final : public HttpBase {
  private:
   tcp::TcpClient tcp_client_;
 
+  tcp::ConnectionId DoConnect(const base::EndPoint* remote,
+                              std::shared_ptr<HttpOptions> http_options);
+
   bool DoShutdown() override {
     return tcp_client_.Shutdown();
   }

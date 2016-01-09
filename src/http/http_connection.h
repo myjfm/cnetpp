@@ -51,6 +51,16 @@ class HttpConnection : public std::enable_shared_from_this<HttpConnection> {
     return connection_id_;
   }
 
+  const std::string& remote_hostname() const {
+    return remote_hostname_;
+  }
+  void set_remote_hostname(const std::string& remote_hostname) {
+    remote_hostname_ = remote_hostname;
+  }
+  void set_remote_hostname(std::string&& remote_hostname) {
+    remote_hostname_ = std::move(remote_hostname);
+  }
+
   std::shared_ptr<tcp::TcpConnection> tcp_connection() {
     return tcp_connection_;
   }
@@ -129,6 +139,7 @@ class HttpConnection : public std::enable_shared_from_this<HttpConnection> {
     kCompleted = 5,
   };
 
+  std::string remote_hostname_;  // just used for http client
   tcp::ConnectionId connection_id_;
 
   std::shared_ptr<tcp::TcpConnection> tcp_connection_ { nullptr };

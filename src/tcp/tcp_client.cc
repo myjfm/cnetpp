@@ -79,6 +79,7 @@ ConnectionId TcpClient::Connect(const base::EndPoint* remote,
   tcp_connection->SetSendBufferSize(options.send_buffer_size());
   tcp_connection->SetRecvBufferSize(options.receive_buffer_size());
   tcp_connection->set_cookie(cookie);
+  tcp_connection->set_remote_end_point(*remote);
   std::unique_lock<std::mutex> guard(contexts_mutex_);
   contexts_[connection->id()] = cc;
   guard.unlock();

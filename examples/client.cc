@@ -22,7 +22,13 @@ class HttpClientHandler final {
     http_request->set_method(cnetpp::http::HttpRequest::MethodType::kGet);
     http_request->set_uri("/");
     //http_request->SetHttpHeader("Content-Length", "0");
-    http_request->SetHttpHeader("Host", "www.qq.com");
+    if (!http_connection->remote_hostname().empty()) {
+      http_request->SetHttpHeader("Host", http_connection->remote_hostname());
+    } else {
+      auto tc = http_connection->tcp_connection();
+      http_request->SetHttpHeader("Host",
+                                  tc->remote_end_point().ToStringWithoutPort());
+    }
     http_request->SetHttpHeader("User-Agent", "cnetpp/1.0");
     return http_connection->SendPacket(http_request->ToString());
   }
@@ -82,15 +88,11 @@ int main(int argc, const char **argv) {
         return http_client_handler.OnSent(success, c);
       }
   );
-  //cnetpp::base::IPAddress remote_ip("127.0.0.1");
-  //cnetpp::base::EndPoint remote_end_point(remote_ip, 12346);
-  //cnetpp::base::IPAddress remote_ip("202.108.33.60");
-  //cnetpp::base::EndPoint remote_end_point(remote_ip, 80);
   if (!http_client.Launch(1)) {
     std::cout << "failed to launch the http_client" << std::endl;
     return 1;
   }
-  for (auto i = 0; i < 10; ++i) {
+  for (auto i = 0; i < 1; ++i) {
     auto connection_id = http_client.Connect(argv[1], http_options);
     if (connection_id == cnetpp::tcp::kInvalidConnectionId) {
       std::cout << "failed to connect to the server" << std::endl;
