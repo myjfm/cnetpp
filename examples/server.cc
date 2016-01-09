@@ -1,6 +1,7 @@
 #include <unistd.h>
 
 #include <iostream>
+#include <memory>
 
 #include "base/end_point.h"
 #include "base/ip_address.h"
