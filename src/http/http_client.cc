@@ -36,9 +36,17 @@ namespace http {
 
 tcp::ConnectionId HttpClient::Connect(const base::EndPoint* remote,
                                       const HttpOptions& http_options) {
+  auto new_http_options =
+      std::shared_ptr<HttpOptions>(new HttpOptions(http_options));
+  return DoConnect(remote, new_http_options);
+}
+
+tcp::ConnectionId HttpClient::DoConnect(
+    const base::EndPoint* remote,
+    std::shared_ptr<HttpOptions> http_options) {
   tcp::TcpClientOptions options;
-  options.set_send_buffer_size(http_options.send_buffer_size());
-  options.set_receive_buffer_size(http_options.receive_buffer_size());
+  options.set_send_buffer_size(http_options->send_buffer_size());
+  options.set_receive_buffer_size(http_options->receive_buffer_size());
   options.set_connected_callback(
       [this] (std::shared_ptr<tcp::TcpConnection> c) -> bool {
         return this->OnConnected(c);
@@ -59,8 +67,7 @@ tcp::ConnectionId HttpClient::Connect(const base::EndPoint* remote,
         return this->OnSent(status, c);
       }
   );
-  std::shared_ptr<void> new_http_options =
-      std::shared_ptr<HttpOptions>(new HttpOptions(http_options));
+  auto new_http_options = std::static_pointer_cast<void>(http_options);
   return tcp_client_.Connect(remote, options, new_http_options);
 }
 
@@ -99,8 +106,12 @@ tcp::ConnectionId HttpClient::Connect(base::StringPiece url_str,
   }
   freeaddrinfo(presults);
 
+  auto new_http_options =
+      std::shared_ptr<HttpOptions>(new HttpOptions(http_options));
+  new_http_options->set_remote_hostname(url.Hostname());
+
   // connect to server
-  return Connect(&endpoint, http_options);
+  return DoConnect(&endpoint, new_http_options);
 }
 
 bool HttpClient::AsyncClose(tcp::ConnectionId connection_id) {
@@ -115,6 +126,9 @@ bool HttpClient::HandleConnected(
   http_connection->set_closed_callback(http_options->closed_callback());
   http_connection->set_received_callback(http_options->received_callback());
   http_connection->set_sent_callback(http_options->sent_callback());
+  if (!http_options->remote_hostname().empty()) {
+    http_connection->set_remote_hostname(http_options->remote_hostname());
+  }
   http_connection->set_http_packet(
       std::shared_ptr<HttpPacket>(new HttpResponse));
   return true;

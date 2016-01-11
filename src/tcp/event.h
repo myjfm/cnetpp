@@ -45,11 +45,20 @@ class Event {
   }
   Event(int fd, int mask) : fd_(fd), mask_(mask) {
   }
-  Event(Event&&) = default;
 
-  Event& operator=(Event&&) = default;
+  Event(Event&& e) {
+    fd_ = e.fd_;
+    mask_ = e.mask_;
+  }
+  Event& operator=(Event&& e) {
+    fd_ = e.fd_;
+    mask_ = e.mask_;
+    return *this;
+  }
+
   Event(const Event&) = delete;
   Event& operator=(const Event&) = delete;
+
   int fd() const {
     return fd_;
   }

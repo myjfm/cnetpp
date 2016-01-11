@@ -124,6 +124,19 @@ class TcpConnection : public ConnectionBase {
     cookie_ = cookie;
   }
 
+  const base::EndPoint& remote_end_point() const {
+    return remote_end_point_;
+  }
+  base::EndPoint& mutable_remote_end_point() {
+    return remote_end_point_;
+  }
+  void set_remote_end_point(const base::EndPoint& remote_end_point) {
+    remote_end_point_ = remote_end_point;
+  }
+  void set_remote_end_point(base::EndPoint&& remote_end_point) {
+    remote_end_point_ = std::move(remote_end_point);
+  }
+
   bool SendPacket();
   bool SendPacket(base::StringPiece data);
 
@@ -142,6 +155,8 @@ class TcpConnection : public ConnectionBase {
         send_buffer_(0),
         recv_buffer_(0) {
   }
+
+  base::EndPoint remote_end_point_;
 
   // indicates whether the connection has been established
   volatile bool connected_ { false };

@@ -70,7 +70,7 @@ class EndPoint final {
     return address_.Family();
   }
 
-  int Port() const {
+  int port() const {
     return port_;
   }
 

@@ -44,7 +44,8 @@ void ListenConnection::HandleReadableEvent(EventCenter* event_center) {
   listen_socket.Attach(socket_.fd());
 
   base::TcpSocket new_socket;
-  if (!listen_socket.Accept(&new_socket)) {
+  base::EndPoint remote_end_point;
+  if (!listen_socket.Accept(&new_socket, &remote_end_point)) {
     listen_socket.Detach();
     return;
   }
@@ -70,6 +71,7 @@ void ListenConnection::HandleReadableEvent(EventCenter* event_center) {
   new_tcp_connection->set_connected(true);
   new_tcp_connection->SetSendBufferSize(options_.send_buffer_size());
   new_tcp_connection->SetRecvBufferSize(options_.receive_buffer_size());
+  new_tcp_connection->set_remote_end_point(std::move(remote_end_point));
 
   new_socket.Detach();
 

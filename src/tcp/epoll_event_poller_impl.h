@@ -31,28 +31,21 @@
 #ifndef CNETPP_TCP_EPOLL_EVENT_POLLER_IMPL_H_
 #define CNETPP_TCP_EPOLL_EVENT_POLLER_IMPL_H_
 
-#include <tcp/event.h>
 #include <tcp/event_poller.h>
-#include <tcp/interrupter.h>
 
 #include <sys/epoll.h>
-
+#include <unistd.h>
 #include <vector>
+
+#include <tcp/event.h>
 
 namespace cnetpp {
 namespace tcp {
 
-class EventCenter;
-
 class EpollEventPollerImpl : public EventPoller {
  public:
   explicit EpollEventPollerImpl(int id, size_t max_connections)
-      : id_(id),
-#if 0
-        pipe_read_fd_(-1),
-        pipe_write_fd_(-1),
-#endif
-        interrupter_(NULL),
+      : EventPoller(id, max_connections),
         epoll_fd_(-1),
         epoll_events_(max_connections) {
   }
@@ -60,46 +53,24 @@ class EpollEventPollerImpl : public EventPoller {
   ~EpollEventPollerImpl() = default;
 
  protected:
-  bool Init(std::shared_ptr<EventCenter> event_center) override;
+  bool DoInit() override;
+
+  void DoShutdown() override {
+    if (epoll_fd_ >= 0) {
+      ::close(epoll_fd_);
+    }
+  }
 
   bool Poll() override;
 
-  bool Interrupt() override;
-
-  void Shutdown() override;
-
-  size_t Id() const override {
-    return id_;
-  }
-
-  bool ProcessCommand(const Command& command) override;
-
  private:
-  int id_; // the id
-  std::weak_ptr<EventCenter> event_center_;
-
-  // used for interrupt the epoll run loop.
-  // We first add the pipe_read_fd_ to the epoll events. When one thread wants
-  // to interrupt the poll thread, we can write a byte to pipe_write_fd_ of the
-  // pipe, the epoll thread will be waken up from epoll_wait()
-#if 0
-  int pipe_read_fd_;
-  int pipe_write_fd_;
-#endif
-  Interrupter *interrupter_ { nullptr};
-
   int epoll_fd_;
 
   std::vector<epoll_event> epoll_events_;
 
-  bool CreateInterrupter();
-  void DestroyInterrupter();
-
-  bool ProcessInterrupt();
-
-  bool AddEpollEvent(const Event& ev);
-  bool ModifyEpollEvent(const Event& ev);
-  bool RemoveEpollEvent(const Event& ev);
+  bool AddPollerEvent(Event&& ev) override;
+  bool ModifyPollerEvent(Event&& ev) override;
+  bool RemovePollerEvent(Event&& ev) override;
 };
 
 }  // namespace tcp

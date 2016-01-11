@@ -54,41 +54,48 @@ class HttpOptions {
     receive_buffer_size_ = size;
   }
 
-  void set_connected_callback(ConnectedCallbackType connected_callback) {
-    connected_callback_ = connected_callback;
+  const std::string& remote_hostname() const {
+    return remote_hostname_;
+  }
+  void set_remote_hostname(const std::string& remote_hostname) {
+    remote_hostname_ = remote_hostname;
+  }
+  void set_remote_hostname(std::string&& remote_hostname) {
+    remote_hostname_ = std::move(remote_hostname);
   }
 
   ConnectedCallbackType connected_callback() const {
     return connected_callback_;
   }
-
-  void set_closed_callback(ClosedCallbackType closed_callback) {
-    closed_callback_ = closed_callback;
+  void set_connected_callback(ConnectedCallbackType connected_callback) {
+    connected_callback_ = connected_callback;
   }
 
   ClosedCallbackType closed_callback() const {
     return closed_callback_;
   }
-
-  void set_received_callback(ReceivedCallbackType received_callback) {
-    received_callback_ = received_callback;
+  void set_closed_callback(ClosedCallbackType closed_callback) {
+    closed_callback_ = closed_callback;
   }
 
   ReceivedCallbackType received_callback() const {
     return received_callback_;
   }
-
-  void set_sent_callback(SentCallbackType sent_callback) {
-    sent_callback_ = sent_callback;
+  void set_received_callback(ReceivedCallbackType received_callback) {
+    received_callback_ = received_callback;
   }
 
   SentCallbackType sent_callback() const {
     return sent_callback_;
   }
+  void set_sent_callback(SentCallbackType sent_callback) {
+    sent_callback_ = sent_callback;
+  }
 
  private:
   size_t send_buffer_size_ {32 * 1024 };
   size_t receive_buffer_size_ { 32 * 1024 };
+  std::string remote_hostname_;  // used only for http client
   ConnectedCallbackType connected_callback_ { nullptr };
   ClosedCallbackType closed_callback_ { nullptr };
   ReceivedCallbackType received_callback_ { nullptr };

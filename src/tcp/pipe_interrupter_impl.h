@@ -24,7 +24,6 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 //
-
 #ifndef CNETPP_TCP_PIPE_INTERRUPTER_IMPL_H_
 #define CNETPP_TCP_PIPE_INTERRUPTER_IMPL_H_
 
@@ -42,27 +41,23 @@ class PipeInterrupterImpl : public Interrupter {
 
   bool Create();
 
-  // interrupt the epoll_wait call.
   bool Interrupt();
 
-  // Reset the epoll interrupt.
-  // Returns true if the epoll_wait call was interrupted.
   bool Reset();
 
-  // Get the read descriptor to be passed to epoll_wait.
   int get_read_fd() const {
     return read_fd_;
   }
 
  private:
-  // The read end of a connection used to interrupt the epoll_wait call.
+  // The read end of a connection used to interrupt the poll thread from waiting.
   // This file descriptor is passed to epoll such that when it is time to stop,
   // a single byte will be written on the other end of the connection and this
   // descriptor will become readable.
   int read_fd_;
 
-  // The write end of a connection used to interrupt the epoll_wait call.
-  // A single byte may be written to this to wake up the epoll_wati which is
+  // The write end of a connection used to interrupt the poll thread from waiting.
+  // A single byte may be written to this to wake up the thread from wait which is
   // waiting for the other end to become readable.
   int write_fd_;
 };
