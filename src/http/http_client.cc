@@ -47,26 +47,7 @@ tcp::ConnectionId HttpClient::DoConnect(
   tcp::TcpClientOptions options;
   options.set_send_buffer_size(http_options->send_buffer_size());
   options.set_receive_buffer_size(http_options->receive_buffer_size());
-  options.set_connected_callback(
-      [this] (std::shared_ptr<tcp::TcpConnection> c) -> bool {
-        return this->OnConnected(c);
-      }
-  );
-  options.set_closed_callback(
-      [this] (std::shared_ptr<tcp::TcpConnection> c) -> bool {
-        return this->OnClosed(c);
-      }
-  );
-  options.set_received_callback(
-      [this] (std::shared_ptr<tcp::TcpConnection> c) -> bool {
-        return this->OnReceived(c);
-      }
-  );
-  options.set_sent_callback(
-      [this] (bool status, std::shared_ptr<tcp::TcpConnection> c) -> bool {
-        return this->OnSent(status, c);
-      }
-  );
+  SetCallbacks(options);
   auto new_http_options = std::static_pointer_cast<void>(http_options);
   return tcp_client_.Connect(remote, options, new_http_options);
 }

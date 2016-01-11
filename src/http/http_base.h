@@ -34,6 +34,7 @@
 #include "http_connection.h"
 #include "http_options.h"
 #include "../tcp/tcp_connection.h"
+#include "../tcp/tcp_options.h"
 
 namespace cnetpp {
 namespace http {
@@ -59,6 +60,8 @@ class HttpBase {
   std::unordered_map<tcp::ConnectionId,
                      std::shared_ptr<HttpConnection> > http_connections_;
   std::mutex http_connections_mutex_;
+
+  void SetCallbacks(tcp::TcpOptions& tcp_options);
 
   virtual bool DoShutdown() = 0;
 

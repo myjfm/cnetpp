@@ -71,7 +71,7 @@ void TcpConnection::HandleReadableEvent(EventCenter* event_center) {
       if (connected_callback_) {
         // call callback user defined
         connected_callback_(
-            std::dynamic_pointer_cast<TcpConnection>(shared_from_this()));
+            std::static_pointer_cast<TcpConnection>(shared_from_this()));
       }
       connected_ = true;
     }
@@ -102,7 +102,7 @@ void TcpConnection::HandleReadableEvent(EventCenter* event_center) {
 
   if (received && received_callback_) {
     received_callback_(
-        std::dynamic_pointer_cast<TcpConnection>(shared_from_this()));
+        std::static_pointer_cast<TcpConnection>(shared_from_this()));
   }
 
   bool tmp = false;
@@ -139,7 +139,7 @@ void TcpConnection::HandleWriteableEvent(EventCenter* event_center) {
       if (connected_callback_) {
         // call callback user defined
         connected_callback_(
-            std::dynamic_pointer_cast<TcpConnection>(shared_from_this()));
+            std::static_pointer_cast<TcpConnection>(shared_from_this()));
       }
     }
   }
@@ -167,7 +167,7 @@ void TcpConnection::HandleWriteableEvent(EventCenter* event_center) {
         if (sent_callback_) {
           sent_callback_(
               true,
-              std::dynamic_pointer_cast<TcpConnection>(shared_from_this()));
+              std::static_pointer_cast<TcpConnection>(shared_from_this()));
         }
       }
     }
@@ -186,7 +186,7 @@ void TcpConnection::HandleCloseConnection() {
   assert(closed_.load(std::memory_order_relaxed));
   if (closed_callback_) {
     closed_callback_(
-        std::dynamic_pointer_cast<TcpConnection>(shared_from_this()));
+        std::static_pointer_cast<TcpConnection>(shared_from_this()));
   }
   socket_.Close();
 }
