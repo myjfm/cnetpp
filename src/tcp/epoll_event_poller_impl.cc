@@ -46,10 +46,7 @@ bool EpollEventPollerImpl::DoInit() {
   if (epoll_fd_ < 0) {
     return false;
   }
-
-  Event ev { interrupter_->get_read_fd(), 
-             static_cast<int>(Event::Type::kRead) };
-  return AddPollerEvent(std::move(ev));
+  return true;
 }
 
 bool EpollEventPollerImpl::Poll() {

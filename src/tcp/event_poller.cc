@@ -81,6 +81,10 @@ bool EventPoller::ProcessCommand(const Command& command) {
     return RemovePollerEvent(Event(command.connection()->socket().fd(), type));
   } else if (command.type() & static_cast<int>(Command::Type::kReadable) ||
       command.type() & static_cast<int>(Command::Type::kWriteable)) {
+    if (command.type() == command.connection()->cached_event_type()) {
+      return true;
+    }
+    command.connection()->set_cached_event_type(command.type());
     return ModifyPollerEvent(Event(command.connection()->socket().fd(), type));
   } else {
     return false;
