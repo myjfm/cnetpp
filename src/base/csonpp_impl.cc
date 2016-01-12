@@ -1196,10 +1196,12 @@ Token TokenizerImpl::GetToken() {
         break;
       case '#':
         c = GetNextChar();
-        do {                              // for windows  \r\n
-          c = GetNextChar();              // for linux    \n
-        } while (c != '\r' && c != '\n'); // for mac      \r
-        if ((c = GetNextChar()) != '\n') {
+        do {                                            // for windows  \r\n
+          c = GetNextChar();                            // for linux    \n
+        } while (c != '\r' && c != '\n' && c != '\0');  // for mac      \r
+        if (c == '\0') {
+          return error_occured();
+        } else if ((c = GetNextChar()) != '\n') {
           UngetNextChar();
         }
         break;
