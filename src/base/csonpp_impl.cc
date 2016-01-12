@@ -1073,22 +1073,22 @@ Token TokenizerImpl::GetToken() {
    * kStart + '[1-9]'    -> kNumber2
    * kString + '[^"]'    -> kString
    * kString + '\"'      -> DONE (String)
-   * kNumber1 + '[1-9]' -> kNumber2
-   * kNumber1 + '0'     -> kNumber3
-   * kNumber2 + '[0-9]' -> kNumber2
-   * kNumber2 + '.'     -> kNumber4
-   * kNumber2 + '[eE]'  -> kNumber5
-   * kNumber2 + '[,}\]]'-> DONE (Integer)
-   * kNumber3 + '.'     -> kNumber4
-   * kNumber3 + '[,}\]]'-> DONE (Integer)
-   * kNumber4 + '[0-9]' -> kNumber4
-   * kNumber4 + '[eE]'  -> kNumber5
-   * kNumber4 + '[,}\]]'-> DONE (Double)
-   * kNumber5 + '[+-]'  -> kNumber6
-   * kNumber5 + '[0-9]' -> kNumber7
-   * kNumber6 + '[0-9]' -> kNumber7
-   * kNumber7 + '[0-9]' -> kNumber7
-   * kNumber7 + '[,}\]]'-> DONE (Double)
+   * kNumber1 + '[1-9]'  -> kNumber2
+   * kNumber1 + '0'      -> kNumber3
+   * kNumber2 + '[0-9]'  -> kNumber2
+   * kNumber2 + '.'      -> kNumber4
+   * kNumber2 + '[eE]'   -> kNumber5
+   * kNumber2 + '[,}\]#]'-> DONE (Integer)
+   * kNumber3 + '.'      -> kNumber4
+   * kNumber3 + '[,}\]#]'-> DONE (Integer)
+   * kNumber4 + '[0-9]'  -> kNumber4
+   * kNumber4 + '[eE]'   -> kNumber5
+   * kNumber4 + '[,}\]#]'-> DONE (Double)
+   * kNumber5 + '[+-]'   -> kNumber6
+   * kNumber5 + '[0-9]'  -> kNumber7
+   * kNumber6 + '[0-9]'  -> kNumber7
+   * kNumber7 + '[0-9]'  -> kNumber7
+   * kNumber7 + '[,}\]#]'-> DONE (Double)
    */
   enum class DFAState {
     kStart,
@@ -1194,6 +1194,15 @@ Token TokenizerImpl::GetToken() {
         token.value.append(1, static_cast<char>(c));
         token.type = Token::Type::kInteger;
         break;
+      case '#':
+        c = GetNextChar();
+        do {                              // for windows  \r\n
+          c = GetNextChar();              // for linux    \n
+        } while (c != '\r' && c != '\n'); // for mac      \r
+        if ((c = GetNextChar()) != '\n') {
+          UngetNextChar();
+        }
+        break;
       default:
         return error_occured();
       }
@@ -1243,7 +1252,7 @@ Token TokenizerImpl::GetToken() {
         token.value.append(1, static_cast<char>(c));
         c = GetNextChar();
       }
-      if (c == '\0' || c == ',' || c == '}' || c == ']') {
+      if (c == '\0' || c == ',' || c == '}' || c == ']' || c == '#') {
         UngetNextChar();
         return token;
       } else if (c == 'e' || c == 'E') {
@@ -1259,7 +1268,7 @@ Token TokenizerImpl::GetToken() {
       }
       break;
     case DFAState::kNumber3:
-      if (c == '\0' || c == ',' || c == '}' || c == ']') {
+      if (c == '\0' || c == ',' || c == '}' || c == ']' || c == '#') {
         UngetNextChar();
         return token;
       } else if (c == 'e' || c == 'E') {
@@ -1279,7 +1288,7 @@ Token TokenizerImpl::GetToken() {
         token.value.append(1, static_cast<char>(c));
         c = GetNextChar();
       }
-      if (c == '\0' || c == ',' || c == '}' || c == ']') {
+      if (c == '\0' || c == ',' || c == '}' || c == ']' || c == '#') {
         UngetNextChar();
         return token;
       } else if (c == 'e' || c == 'E') {
@@ -1313,7 +1322,7 @@ Token TokenizerImpl::GetToken() {
         token.value.append(1, static_cast<char>(c));
         c = GetNextChar();
       }
-      if (c == '\0' || c == ',' || c == '}' || c == ']') {
+      if (c == '\0' || c == ',' || c == '}' || c == ']' || c == '#') {
         UngetNextChar();
         return token;
       } else {
