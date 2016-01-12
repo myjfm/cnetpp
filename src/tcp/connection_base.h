@@ -68,6 +68,13 @@ class ConnectionBase : public std::enable_shared_from_this<ConnectionBase> {
     connected_callback_ = std::move(connected_callback);
   }
 
+  int cached_event_type() const {
+    return cached_event_type_;
+  }
+  void set_cached_event_type(int event_type) {
+    cached_event_type_ = event_type;
+  }
+
   // These three methods will be called by the event poller thread when a
   // socket fd becomes readable or writable
   // NOTE: user should not care about them
@@ -88,6 +95,8 @@ class ConnectionBase : public std::enable_shared_from_this<ConnectionBase> {
   base::TcpSocket socket_;
 
   ConnectedCallbackType connected_callback_ { nullptr };
+
+  int cached_event_type_ { 0 };
 };
 
 }  // namespace tcp

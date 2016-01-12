@@ -32,24 +32,33 @@
 namespace cnetpp {
 namespace http {
 
+void HttpBase::SetCallbacks(tcp::TcpOptions& tcp_options) {
+  tcp_options.set_connected_callback(
+      [this] (std::shared_ptr<tcp::TcpConnection> c) -> bool {
+        return this->OnConnected(c);
+      }
+  );
+  tcp_options.set_closed_callback(
+      [this] (std::shared_ptr<tcp::TcpConnection> c) -> bool {
+        return this->OnClosed(c);
+      }
+  );
+  tcp_options.set_received_callback(
+      [this] (std::shared_ptr<tcp::TcpConnection> c) -> bool {
+        return this->OnReceived(c);
+      }
+  );
+  tcp_options.set_sent_callback(
+      [this] (bool sent, std::shared_ptr<tcp::TcpConnection> c) -> bool {
+        return this->OnSent(sent, c);
+      }
+  );
+}
+
 bool HttpBase::OnConnected(std::shared_ptr<tcp::TcpConnection> tcp_connection) {
   assert(tcp_connection.get());
 
-  tcp_connection->set_received_callback(
-      [this] (std::shared_ptr<tcp::TcpConnection> c) -> bool {
-        return this->OnReceived(c);
-  });
-  tcp_connection->set_sent_callback(
-      [this] (bool success, std::shared_ptr<tcp::TcpConnection> c) -> bool {
-        return this->OnSent(success, c);
-  });
-  tcp_connection->set_closed_callback(
-      [this] (std::shared_ptr<tcp::TcpConnection> c) -> bool {
-        return this->OnClosed(c);
-  });
-
   auto http_connection = std::make_shared<HttpConnection>(tcp_connection);
-
   http_connections_mutex_.lock();
   http_connections_[tcp_connection->id()] = http_connection;
   http_connections_mutex_.unlock();
@@ -87,6 +96,11 @@ bool HttpBase::OnClosed(std::shared_ptr<tcp::TcpConnection> tcp_connection) {
   // the connection might haven't established.
   if (itr == http_connections_.end()) {
     http_connections_mutex_.unlock();
+    auto http_options =
+        std::static_pointer_cast<HttpOptions>(tcp_connection->cookie());
+    if (http_options->closed_callback()) {
+      return http_options->closed_callback()(std::shared_ptr<HttpConnection>());
+    }
     return true;
   }
   auto http_connection = itr->second;

@@ -37,11 +37,7 @@ bool HttpServer::Launch(const base::EndPoint& local_address,
   options_ = http_options;
 
   tcp::TcpServerOptions tcp_options;
-  tcp_options.set_connected_callback(
-      [this] (std::shared_ptr<tcp::TcpConnection> c) -> bool {
-        return this->OnConnected(c);
-      }
-  );
+  SetCallbacks(tcp_options);
   return tcp_server_.Launch(local_address, worker_count, tcp_options);
 }
 
