@@ -102,7 +102,7 @@ TEST(Parser, DeSerializeToObject) {
   ASSERT_EQ(value8["abc"].AsInteger(), 1);
   ASSERT_EQ(value8["def"].AsString(), "abc\r");
 
-  std::string str9("# this is a json file\r\n{\"abc\":1#this is first member\r,\"def\":\"abc#\"#this second member\n}");
+  std::string str9("# this is a json file\r\n{\"abc\":1#this is first member\n,\"def\":\"abc#\"#this second member\n}");
   Value value9 = Parser::Deserialize(str9);
   ASSERT_EQ(value9.Type(), Value::ValueType::kObject);
   ASSERT_EQ(value9["abc"].AsInteger(), 1);
@@ -111,6 +111,15 @@ TEST(Parser, DeSerializeToObject) {
   std::string str10("   # this is a json file");
   Value value10 = Parser::Deserialize(str10);
   ASSERT_EQ(value10.Type(), Value::ValueType::kDummy);
+
+  std::string str11("{\"name\":1}# this is a json file");
+  Value value11 = Parser::Deserialize(str11);
+  ASSERT_EQ(value11.Type(), Value::ValueType::kObject);
+  ASSERT_EQ(value11["name"].AsInteger(), 1);
+
+  std::string str12("#");
+  Value value12 = Parser::Deserialize(str12);
+  ASSERT_EQ(value12.Type(), Value::ValueType::kDummy);
 }
 
 TEST(CsonppTest, DeSerializeToArray) {
