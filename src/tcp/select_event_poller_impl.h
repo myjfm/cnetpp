@@ -66,4 +66,3 @@ class SelectEventPollerImpl : public EventPoller {
 }  // namespace cnetpp
 
 #endif  // CNETPP_TCP_SELECT_EVENT_POLLER_IMPL_H_
-
