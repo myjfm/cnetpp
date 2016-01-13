@@ -14,7 +14,7 @@ Includes:
 
 * a simple json parser, named csonpp
 * a simple thread framework
-* the asynchronous Tcp network framework based on epoll(select, poll will be supported in the future)
+* the asynchronous Tcp network framework based on epoll(or select or poll)
 * the asynchronous Http server and client module based on our Tcp network framework
   
 Install:
