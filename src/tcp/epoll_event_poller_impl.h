@@ -31,13 +31,13 @@
 #ifndef CNETPP_TCP_EPOLL_EVENT_POLLER_IMPL_H_
 #define CNETPP_TCP_EPOLL_EVENT_POLLER_IMPL_H_
 
-#include <tcp/event_poller.h>
+#include "event_poller.h"
 
 #include <sys/epoll.h>
 #include <unistd.h>
 #include <vector>
 
-#include <tcp/event.h>
+#include "event.h"
 
 namespace cnetpp {
 namespace tcp {

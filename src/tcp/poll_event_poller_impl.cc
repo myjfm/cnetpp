@@ -28,36 +28,36 @@
 #error "Your operating system seems not be linux!"
 #endif
 
-#include "select_event_poller_impl.h"
+#include "poll_event_poller_impl.h"
 
-#include <sys/select.h>
 #include <errno.h>
-#include <unistd.h>
 #include <fcntl.h>
+#include <sys/select.h>
+#include <unistd.h>
 
-#include "event.h"
 #include "event_center.h"
+#include "event.h"
 #include "interrupter.h"
 #include "../concurrency/this_thread.h"
 
 namespace cnetpp {
 namespace tcp {
 
-bool SelectEventPollerImpl::Poll() {
+bool PollEventPollerImpl::Poll() {
   // before starting polling, we first process all the pending command events
   if (!ProcessInterrupt()) {
     return false;
   }
 
-  int count{0};
-  fd_set rd_fds, wr_fds, ex_fds;
-  int max_fd = BuildFdsets(&rd_fds, &wr_fds, &ex_fds);
-  if(max_fd < 0) {
+  // should not happen
+  // because we have at least one fd in the fd sets(pipe read fd)
+  if (poll_fds_end_ == 0) {
     return true;
   }
 
+  int count = 0;
   do {
-    count = ::select(max_fd + 1, &rd_fds, &wr_fds, &ex_fds, nullptr);
+    count = ::poll(&(poll_fds_[0]), poll_fds_end_, -1);
   } while (count == -1 &&
            cnetpp::concurrency::ThisThread::GetLastError() == EINTR);
 
@@ -65,90 +65,94 @@ bool SelectEventPollerImpl::Poll() {
     return false;
   }
 
-  // wake up by interrupter
-  if (FD_ISSET(interrupter_->get_read_fd(), &rd_fds)) {
-    if (!ProcessInterrupt()) {
-      return false;
-    }
+  auto event_center = event_center_.lock();
+  if (!event_center.get()) {
+    return false;
   }
 
-  for (auto fd_info_itr = select_fds_.begin();
-       fd_info_itr != select_fds_.end();
-       ++fd_info_itr) {
+  for (int i = 0; i < poll_fds_end_; ++i) {
+    int fd = poll_fds_[i].fd;
+    // wake up by interrupter
+    if (fd == interrupter_->get_read_fd()) {
+      if (!ProcessInterrupt()) {
+        return false;
+      }
+      continue;
+    }
+
     bool has_event = false;
-    int fd = fd_info_itr->first;
     Event event(fd);
-    if (FD_ISSET(fd, &ex_fds)) {
+    int revents = poll_fds_[i].revents;
+
+    if (revents & (POLLRDHUP | POLLERR | POLLHUP | POLLNVAL)) {
       has_event = true;
       event.mutable_mask() |= static_cast<int>(Event::Type::kClose);
     } else {
-      if (FD_ISSET(fd, &rd_fds)) {
+      if (revents & (POLLIN | POLLRDNORM | POLLPRI | POLLRDBAND)) {
         has_event = true;
         event.mutable_mask() |= static_cast<int>(Event::Type::kRead);
       }
-      if (FD_ISSET(fd, &wr_fds)) {
+      if (revents & (POLLOUT | POLLWRNORM | POLLWRBAND)) {
         has_event = true;
         event.mutable_mask() |= static_cast<int>(Event::Type::kWrite);
       }
     }
 
-    if(has_event) {
-      auto event_center = event_center_.lock();
-      if (!event_center || !event_center->ProcessEvent(event, id_)) {
-        return false;
-      }
+    if (has_event && !event_center->ProcessEvent(event, id_)) {
+      return false;
     }
   }
   return true;
 }
 
-bool SelectEventPollerImpl::AddPollerEvent(Event&& event) {
-  if (select_fds_.size() > max_connections_) {
+bool PollEventPollerImpl::AddPollerEvent(Event&& event) {
+  if (static_cast<size_t>(poll_fds_end_) >= max_connections_) {
     return false;
   }
-  select_fds_.insert(std::make_pair(event.fd(), std::move(event)));
-  return true;
-}
-
-bool SelectEventPollerImpl::ModifyPollerEvent(Event&& event) {
-  auto itr = select_fds_.find(event.fd());
-  assert(itr != select_fds_.end());
-  itr->second = std::forward<Event>(event);
-  return true;
-}
-
-bool SelectEventPollerImpl::RemovePollerEvent(Event&& event) {
-  select_fds_.erase(event.fd());
-  return true;
-}
-
-int SelectEventPollerImpl::BuildFdsets(fd_set* rd_fdset, fd_set* wr_fdset,
-                                       fd_set* ex_fdset) {
-  int max_fd = -1;
-  assert(rd_fdset && wr_fdset && ex_fdset);
-  FD_ZERO(rd_fdset);
-  FD_ZERO(wr_fdset);
-  FD_ZERO(ex_fdset);
-  int interrupter_rd_fd = interrupter_->get_read_fd();
-  assert(interrupter_rd_fd >= 0);
-  FD_SET(interrupter_rd_fd, rd_fdset);
-  FD_SET(interrupter_rd_fd, ex_fdset);
-  max_fd = max_fd < interrupter_rd_fd ? interrupter_rd_fd : max_fd;
-  for (auto fd_info_itr = select_fds_.begin(); fd_info_itr != select_fds_.end();
-       ++fd_info_itr) {
-    int fd = fd_info_itr->first;
-    if(fd_info_itr->second.mask() & static_cast<int>(Event::Type::kRead)) {
-      FD_SET(fd, rd_fdset);
-    }
-    if(fd_info_itr->second.mask() & static_cast<int>(Event::Type::kWrite)) {
-      FD_SET(fd, wr_fdset);
-    }
-    if(fd_info_itr->second.mask() & static_cast<int>(Event::Type::kClose)) {
-      FD_SET(fd, ex_fdset);
-    }
-    max_fd = max_fd < fd ? fd : max_fd;
+  poll_fds_[poll_fds_end_].fd = event.fd();
+  poll_fds_[poll_fds_end_].events = 0;
+  if (event.mask() & static_cast<int>(Event::Type::kRead)) {
+    poll_fds_[poll_fds_end_].events |= POLLIN;
   }
-  return max_fd;
+  if (event.mask() & static_cast<int>(Event::Type::kWrite)) {
+    poll_fds_[poll_fds_end_].events |= POLLOUT;
+  }
+  fd_to_index_map_[event.fd()] = poll_fds_end_++;
+  return true;
 }
+
+bool PollEventPollerImpl::ModifyPollerEvent(Event&& event) {
+  auto itr = fd_to_index_map_.find(event.fd());
+  assert(itr != fd_to_index_map_.end());
+  auto index = itr->second;
+  assert(poll_fds_[index].fd == event.fd());
+  poll_fds_[index].events = 0;
+  if (event.mask() & static_cast<int>(Event::Type::kRead)) {
+    poll_fds_[index].events |= POLLIN;
+  }
+  if (event.mask() & static_cast<int>(Event::Type::kWrite)) {
+    poll_fds_[index].events |= POLLOUT;
+  }
+  return true;
+}
+
+bool PollEventPollerImpl::RemovePollerEvent(Event&& event) {
+  auto itr = fd_to_index_map_.find(event.fd());
+  assert(itr != fd_to_index_map_.end());
+  auto index = itr->second;
+  assert(poll_fds_[index].fd == event.fd());
+  poll_fds_end_--;
+  fd_to_index_map_.erase(itr);
+  if (index == poll_fds_end_) {
+    return true;
+  }
+  poll_fds_[index].fd = poll_fds_[poll_fds_end_].fd;
+  poll_fds_[index].events = poll_fds_[poll_fds_end_].events;
+  poll_fds_[index].revents = poll_fds_[poll_fds_end_].revents;
+  fd_to_index_map_[poll_fds_[index].fd] = index;
+  return true;
+}
+
 }  // namespace tcp
 }  // namespace cnetpp
+

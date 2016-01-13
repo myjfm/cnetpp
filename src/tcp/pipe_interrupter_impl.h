@@ -27,7 +27,7 @@
 #ifndef CNETPP_TCP_PIPE_INTERRUPTER_IMPL_H_
 #define CNETPP_TCP_PIPE_INTERRUPTER_IMPL_H_
 
-#include <tcp/interrupter.h>
+#include "interrupter.h"
 
 namespace cnetpp {
 namespace tcp {

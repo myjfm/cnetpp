@@ -31,11 +31,12 @@
 #ifndef CNETPP_TCP_SELECT_EVENT_POLLER_IMPL_H_
 #define CNETPP_TCP_SELECT_EVENT_POLLER_IMPL_H_
 
-#include <tcp/event_poller.h>
-#include <tcp/event.h>
+#include "event_poller.h"
 
 #include <vector>
 #include <unordered_map>
+
+#include "event.h"
 
 namespace cnetpp {
 namespace tcp {

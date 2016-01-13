@@ -24,11 +24,17 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 //
-#include <tcp/event_poller.h>
-#include <tcp/event_center.h>
-#include <tcp/epoll_event_poller_impl.h>
-#include <tcp/select_event_poller_impl.h>
-#include <tcp/interrupter.h>
+#include "event_poller.h"
+#include "event_center.h"
+#include "interrupter.h"
+
+#if defined(USE_SELECT)
+#include "select_event_poller_impl.h"
+#elif defined(USE_POLL)
+#include "poll_event_poller_impl.h"
+#else
+#include "epoll_event_poller_impl.h"
+#endif
 
 namespace cnetpp {
 namespace tcp {
@@ -38,6 +44,9 @@ std::shared_ptr<EventPoller> EventPoller::New(size_t id,
 #if defined(USE_SELECT)
   return std::shared_ptr<EventPoller>(
       new SelectEventPollerImpl(id, max_connections));
+#elif defined(USE_POLL)
+  return std::shared_ptr<EventPoller>(
+      new PollEventPollerImpl(id, max_connections));
 #else
   return std::shared_ptr<EventPoller>(
       new EpollEventPollerImpl(id, max_connections));

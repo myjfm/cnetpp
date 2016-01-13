@@ -15,6 +15,7 @@ int main(int argc, const char **argv) {
     return 1;
   }
 
+  std::unordered_map<cnetpp::tcp::ConnectionId, int> counts;
   using HttpConnectionPtr = std::shared_ptr<cnetpp::http::HttpConnection>;
 
   cnetpp::http::HttpClientOptions http_options;
@@ -50,18 +51,19 @@ int main(int argc, const char **argv) {
       return true;
   });
 
-  http_options.set_received_callback([&send_func] (HttpConnectionPtr c) -> bool {
-      static size_t count = 0;
+  http_options.set_received_callback([&send_func, &counts] (
+        HttpConnectionPtr c) -> bool {
       auto http_response =
         std::static_pointer_cast<cnetpp::http::HttpResponse>(c->http_packet());
       std::string headers;
       http_response->HttpHeadersToString(&headers);
-      std::cout << " headers is:" << std::endl;
+      std::cout << "headers:" << std::endl;
       std::cout << headers << std::endl;
       if (http_response->http_body().length() > 0) {
-        std::cout << "body: " << http_response->http_body() << std::endl;
+        std::cout << "body:" << std::endl;
+        std::cout << http_response->http_body() << std::endl;
       }
-      if (count++ == 100000) {
+      if (counts[c->id()]++ == 10) {
         c->MarkAsClosed();
         return true;
       } else {
@@ -81,7 +83,7 @@ int main(int argc, const char **argv) {
     return 1;
   }
 
-  for (auto i = 0; i < 10; ++i) {
+  for (auto i = 0; i < 8; ++i) {
     auto connection_id = http_client.Connect(argv[1], http_options);
     if (connection_id == cnetpp::tcp::kInvalidConnectionId) {
       std::cout << "failed to connect to the server" << std::endl;

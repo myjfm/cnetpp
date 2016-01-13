@@ -33,8 +33,8 @@
 
 #include "http_connection.h"
 #include "../base/end_point.h"
+#include "../base/uri.h"
 #include "../tcp/tcp_client.h"
-#include <base/uri.h>
 
 namespace cnetpp {
 namespace http {

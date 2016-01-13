@@ -24,16 +24,51 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 //
-#include "interrupter.h"
-#include "pipe_interrupter_impl.h"
+#ifndef __linux__
+#error "Your operating system seems not be linux!"
+#endif
+
+#ifndef CNETPP_TCP_POLL_EVENT_POLLER_IMPL_H_
+#define CNETPP_TCP_POLL_EVENT_POLLER_IMPL_H_
+
+#include "event_poller.h"
+
+#include <poll.h>
+#include <vector>
+#include <unordered_map>
+
+#include "event.h"
 
 namespace cnetpp {
 namespace tcp {
 
-std::unique_ptr<Interrupter> Interrupter::New() {
-  return std::unique_ptr<Interrupter>(new PipeInterrupterImpl());
-}
+class PollEventPollerImpl : public EventPoller {
+ public:
+  explicit PollEventPollerImpl(int id, size_t max_connections)
+      : EventPoller(id, max_connections),
+        poll_fds_(max_connections) {
+  }
+
+  ~PollEventPollerImpl() = default;
+
+ protected:
+  bool Poll() override;
+
+ private:
+  std::vector<struct pollfd> poll_fds_;
+  int poll_fds_end_ { 0 };
+
+  // save the map from socket fd to its index in poll_fds_
+  // we use it to accelerate the deletion of a connection
+  std::unordered_map<int, int> fd_to_index_map_;
+
+  bool AddPollerEvent(Event&& event) override;
+  bool ModifyPollerEvent(Event&& event) override;
+  bool RemovePollerEvent(Event&& event) override;
+};
 
 }  // namespace tcp
 }  // namespace cnetpp
+
+#endif  // CNETPP_TCP_POLL_EVENT_POLLER_IMPL_H_
 

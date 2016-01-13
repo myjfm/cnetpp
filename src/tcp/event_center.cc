@@ -87,7 +87,7 @@ void EventCenter::AddCommand(const Command& command, int id) {
     id = command.connection()->id() % internal_event_poller_infos_.size();
   }
 
-  InternalEventPollerInfoPtr& info = internal_event_poller_infos_[id];
+  auto& info = internal_event_poller_infos_[id];
   {
     std::unique_lock<std::mutex> guard(info->pending_commands_mutex_);
     (info->pending_commands_).push_back(command);
@@ -101,7 +101,7 @@ bool EventCenter::ProcessAllPendingCommands(size_t id) {
     return false;
   }
 
-  InternalEventPollerInfoPtr& info = internal_event_poller_infos_[id];
+  auto& info = internal_event_poller_infos_[id];
   std::unique_lock<std::mutex> guard(info->pending_commands_mutex_);
   std::vector<Command> pending_commands;
   pending_commands.swap(info->pending_commands_);
@@ -133,19 +133,25 @@ bool EventCenter::ProcessEvent(const Event& event, size_t id) {
     return false;
   }
 
-  InternalEventPollerInfoPtr& info = internal_event_poller_infos_[id];
-  if ((event.mask() | static_cast<int>(Event::Type::kClose)) ||
-      (event.mask() | static_cast<int>(Event::Type::kRead))) {
-    if (info->connections_.find(event.fd()) !=
-        info->connections_.end()) {
-      info->connections_[event.fd()]->HandleReadableEvent(this);
+  auto& connections = internal_event_poller_infos_[id]->connections_;
+  auto itr = connections.find(event.fd());
+  if (event.mask() & static_cast<int>(Event::Type::kClose)) {
+    if (itr != connections.end()) {
+      auto connection = itr->second;
+      connections.erase(itr);
+      connection->HandleCloseConnection();
     } /* else { // this connection has been closed. } */
-  }
-  if (event.mask() | static_cast<int>(Event::Type::kWrite)) {
-    if (info->connections_.find(event.fd()) !=
-        info->connections_.end()) {
-      info->connections_[event.fd()]->HandleWriteableEvent(this);
-    } /* else { // this connection has been closed. } */
+  } else {
+    if (event.mask() & static_cast<int>(Event::Type::kRead)) {
+      if (itr != connections.end()) {
+        itr->second->HandleReadableEvent(this);
+      } /* else { // this connection has been closed. } */
+    }
+    if (event.mask() & static_cast<int>(Event::Type::kWrite)) {
+      if (itr != connections.end()) {
+        itr->second->HandleWriteableEvent(this);
+      } /* else { // this connection has been closed. } */
+    }
   }
 
   return true;
@@ -168,12 +174,6 @@ bool EventCenter::InternalEventTask::operator()(void* arg) {
   if (!event_poller || !event_center) {
     return false;
   }
-
-#if 0
-  if (!event_poller->Init(event_center)) {
-    return false;
-  }
-#endif
 
   while (!IsStopped()) {
     if (!event_poller->Poll()) {

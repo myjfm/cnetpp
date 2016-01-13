@@ -29,8 +29,8 @@
 
 #include <memory>
 
-#include <tcp/event.h>
-#include <tcp/interrupter.h>
+#include "event.h"
+#include "interrupter.h"
 
 namespace cnetpp {
 namespace tcp {
