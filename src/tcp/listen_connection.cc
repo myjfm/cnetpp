@@ -64,7 +64,7 @@ void ListenConnection::HandleReadableEvent(EventCenter* event_center) {
   auto new_connection =
       cf.CreateConnection(event_center_.lock(), new_socket.fd(), false);
   auto new_tcp_connection =
-      std::dynamic_pointer_cast<TcpConnection>(new_connection);
+      std::static_pointer_cast<TcpConnection>(new_connection);
   new_tcp_connection->set_closed_callback(options_.closed_callback());
   new_tcp_connection->set_sent_callback(options_.sent_callback());
   new_tcp_connection->set_received_callback(options_.received_callback());

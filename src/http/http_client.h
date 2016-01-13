@@ -49,9 +49,9 @@ class HttpClient final : public HttpBase {
   }
 
   tcp::ConnectionId Connect(const base::EndPoint* remote,
-                            const HttpOptions& options);
+                            const HttpClientOptions& options);
   tcp::ConnectionId Connect(base::StringPiece url,
-                            const HttpOptions& options);
+                            const HttpClientOptions& options);
 
   bool AsyncClose(tcp::ConnectionId connection_id);
 
@@ -59,7 +59,7 @@ class HttpClient final : public HttpBase {
   tcp::TcpClient tcp_client_;
 
   tcp::ConnectionId DoConnect(const base::EndPoint* remote,
-                              std::shared_ptr<HttpOptions> http_options);
+                              std::shared_ptr<HttpClientOptions> http_options);
 
   bool DoShutdown() override {
     return tcp_client_.Shutdown();

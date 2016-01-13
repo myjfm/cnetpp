@@ -32,7 +32,7 @@ namespace cnetpp {
 namespace http {
 
 bool HttpServer::Launch(const base::EndPoint& local_address,
-                        const HttpOptions& http_options,
+                        const HttpServerOptions& http_options,
                         size_t worker_count) {
   options_ = http_options;
 

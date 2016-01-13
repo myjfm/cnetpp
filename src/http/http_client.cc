@@ -35,15 +35,15 @@ namespace cnetpp {
 namespace http {
 
 tcp::ConnectionId HttpClient::Connect(const base::EndPoint* remote,
-                                      const HttpOptions& http_options) {
+                                      const HttpClientOptions& http_options) {
   auto new_http_options =
-      std::shared_ptr<HttpOptions>(new HttpOptions(http_options));
+      std::shared_ptr<HttpClientOptions>(new HttpClientOptions(http_options));
   return DoConnect(remote, new_http_options);
 }
 
 tcp::ConnectionId HttpClient::DoConnect(
     const base::EndPoint* remote,
-    std::shared_ptr<HttpOptions> http_options) {
+    std::shared_ptr<HttpClientOptions> http_options) {
   tcp::TcpClientOptions options;
   options.set_send_buffer_size(http_options->send_buffer_size());
   options.set_receive_buffer_size(http_options->receive_buffer_size());
@@ -53,7 +53,7 @@ tcp::ConnectionId HttpClient::DoConnect(
 }
 
 tcp::ConnectionId HttpClient::Connect(base::StringPiece url_str,
-                                      const HttpOptions& http_options) {
+                                      const HttpClientOptions& http_options) {
   std::string url_with_scheme = "";
   if (!url_str.starts_with("http")) {
     url_with_scheme.append("http://");
@@ -88,7 +88,7 @@ tcp::ConnectionId HttpClient::Connect(base::StringPiece url_str,
   freeaddrinfo(presults);
 
   auto new_http_options =
-      std::shared_ptr<HttpOptions>(new HttpOptions(http_options));
+      std::shared_ptr<HttpClientOptions>(new HttpClientOptions(http_options));
   new_http_options->set_remote_hostname(url.Hostname());
 
   // connect to server
@@ -101,7 +101,7 @@ bool HttpClient::AsyncClose(tcp::ConnectionId connection_id) {
 
 bool HttpClient::HandleConnected(
     std::shared_ptr<HttpConnection> http_connection) {
-  auto http_options = std::static_pointer_cast<HttpOptions>(
+  auto http_options = std::static_pointer_cast<HttpClientOptions>(
       http_connection->tcp_connection()->cookie());
   http_connection->set_connected_callback(http_options->connected_callback());
   http_connection->set_closed_callback(http_options->closed_callback());

@@ -17,7 +17,7 @@ int main(int argc, const char **argv) {
 
   using HttpConnectionPtr = std::shared_ptr<cnetpp::http::HttpConnection>;
 
-  cnetpp::http::HttpOptions http_options;
+  cnetpp::http::HttpClientOptions http_options;
   http_options.set_send_buffer_size(1024 * 1024);
   http_options.set_receive_buffer_size(1024 * 1024);
 

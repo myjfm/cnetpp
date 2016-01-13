@@ -63,7 +63,7 @@ int main() {
   cnetpp::base::EndPoint listen_end_point(listen_ip, 12346);
 
   HttpServerHandler http_handler;
-  cnetpp::http::HttpOptions options;
+  cnetpp::http::HttpServerOptions options;
   options.set_connected_callback(
       [&http_handler] (
         std::shared_ptr<cnetpp::http::HttpConnection> c) -> bool {

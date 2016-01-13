@@ -54,16 +54,6 @@ class HttpOptions {
     receive_buffer_size_ = size;
   }
 
-  const std::string& remote_hostname() const {
-    return remote_hostname_;
-  }
-  void set_remote_hostname(const std::string& remote_hostname) {
-    remote_hostname_ = remote_hostname;
-  }
-  void set_remote_hostname(std::string&& remote_hostname) {
-    remote_hostname_ = std::move(remote_hostname);
-  }
-
   ConnectedCallbackType connected_callback() const {
     return connected_callback_;
   }
@@ -95,11 +85,35 @@ class HttpOptions {
  private:
   size_t send_buffer_size_ {32 * 1024 };
   size_t receive_buffer_size_ { 32 * 1024 };
-  std::string remote_hostname_;  // used only for http client
   ConnectedCallbackType connected_callback_ { nullptr };
   ClosedCallbackType closed_callback_ { nullptr };
   ReceivedCallbackType received_callback_ { nullptr };
   SentCallbackType sent_callback_ { nullptr };
+};
+
+class HttpClientOptions : public HttpOptions {
+ public:
+  HttpClientOptions() = default;
+  ~HttpClientOptions() = default;
+
+  const std::string& remote_hostname() const {
+    return remote_hostname_;
+  }
+  void set_remote_hostname(const std::string& remote_hostname) {
+    remote_hostname_ = remote_hostname;
+  }
+  void set_remote_hostname(std::string&& remote_hostname) {
+    remote_hostname_ = std::move(remote_hostname);
+  }
+
+ private:
+  std::string remote_hostname_;
+};
+
+class HttpServerOptions : public HttpOptions {
+ public:
+  HttpServerOptions() = default;
+  ~HttpServerOptions() = default;
 };
 
 }  // namespace http

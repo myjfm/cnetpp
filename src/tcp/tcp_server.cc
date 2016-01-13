@@ -68,12 +68,12 @@ bool TcpServer::Launch(const base::EndPoint& local_address,
       cf.CreateConnection(event_center_, listen_socket.fd(), true);
   assert(connection.get());
   connection->set_connected_callback(options.connected_callback());
-  auto listener = std::dynamic_pointer_cast<ListenConnection>(connection);
+  auto listener = std::static_pointer_cast<ListenConnection>(connection);
   listener->set_tcp_server_options(options);
 
   // add the listen fd onto multiplexer
   Command cmd(static_cast<int>(Command::Type::kAddConn),
-              std::dynamic_pointer_cast<ConnectionBase>(listener));
+              std::static_pointer_cast<ConnectionBase>(listener));
   event_center_->AddCommand(cmd);
 
   listen_socket.Detach();

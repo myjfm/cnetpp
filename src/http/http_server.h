@@ -43,12 +43,12 @@ class HttpServer final : public HttpBase {
 
   // you must first call this method before you do any requests
   bool Launch(const base::EndPoint& local_address,
-              const HttpOptions& options,
+              const HttpServerOptions& options,
               size_t worker_count = 0);
 
  private:
   tcp::TcpServer tcp_server_;
-  HttpOptions options_;
+  HttpServerOptions options_;
 
   bool DoShutdown() override {
     return tcp_server_.Shutdown();
