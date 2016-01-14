@@ -24,80 +24,37 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 //
-#ifndef CNETPP_CONCURRENCY_SPIN_LOCK_H_
-#define CNETPP_CONCURRENCY_SPIN_LOCK_H_
+#include "eventfd_interrupter_impl.h"
 
-#include <assert.h>
-
-#include <thread>
-#include <atomic>
+#include <sys/eventfd.h>
+#include <unistd.h>
 
 namespace cnetpp {
-namespace concurrency {
+namespace tcp {
 
-class SpinLock final {
- public:
-  class ScopeGuard final {
-   public:
-    explicit ScopeGuard(SpinLock& lock) : lock_(lock) {
-      lock_.Lock();
-    }
-    
-    ~ScopeGuard() {
-      lock_.Unlock();
-    }
-    
-    // disallow copy and move operations
-    ScopeGuard(const ScopeGuard&) = delete;
-    ScopeGuard& operator=(const ScopeGuard&) = delete;
-    ScopeGuard(ScopeGuard&&) noexcept = delete;
-    ScopeGuard& operator=(ScopeGuard&&) noexcept = delete;
-    
-   private:
-    SpinLock& lock_;
-  };
-  
-  SpinLock() {
-    flag_.clear(std::memory_order_release);
+EventfdInterrupterImpl::~EventfdInterrupterImpl() {
+  if (fd_ != -1) {
+    ::close(fd_);
   }
+}
 
-  ~SpinLock() = default;
+bool EventfdInterrupterImpl::Create() {
+  fd_ = ::eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
+  return fd_ >= 0;
+}
 
-  void Lock() {
-    auto i = 0;
-    auto dummy = 0;
-    while (!TryLock()) {
-      i++;
-      if (i < 16) {
-        continue;
-      } else if (i < 32) {
-        dummy = i;
-        dummy++;
-      } else {
-        std::this_thread::yield(); // schedule this thread again
-      }
-    }
-  }
+// interrupt the epoll_wait call.
+bool EventfdInterrupterImpl::Interrupt() {
+  return ::eventfd_write(fd_, 1) == 0;
+}
 
-  bool TryLock() {
-    return !flag_.test_and_set(std::memory_order_acquire);
-  }
+// Reset the epoll interrupt.
+// Returns true if the epoll_wait call was interrupted.
+bool EventfdInterrupterImpl::Reset() {
+  eventfd_t data;
+  return ::eventfd_read(fd_, &data) == 0;
+}
 
-  void Unlock() {
-    flag_.clear(std::memory_order_release);
-  }
-
-  // disallow copy and move operations
-  SpinLock(const SpinLock&) = delete;
-  SpinLock& operator=(const SpinLock&) = delete;
-  SpinLock(SpinLock&&) noexcept = delete;
-  SpinLock& operator=(SpinLock&&) noexcept = delete;
-
- private:
-  std::atomic_flag flag_;
-};
-
-}  // namespace concurrency
+}  // namespace tcp
 }  // namespace cnetpp
 
-#endif  // CNETPP_CONCURRENCY_SPIN_LOCK_H_

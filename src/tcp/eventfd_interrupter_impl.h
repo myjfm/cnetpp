@@ -24,80 +24,37 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 //
-#ifndef CNETPP_CONCURRENCY_SPIN_LOCK_H_
-#define CNETPP_CONCURRENCY_SPIN_LOCK_H_
+#ifndef CNETPP_TCP_EVENTFD_INTERRUPTER_IMPL_H_
+#define CNETPP_TCP_EVENTFD_INTERRUPTER_IMPL_H_
 
-#include <assert.h>
-
-#include <thread>
-#include <atomic>
+#include "interrupter.h"
 
 namespace cnetpp {
-namespace concurrency {
+namespace tcp {
 
-class SpinLock final {
+class EventfdInterrupterImpl : public Interrupter {
  public:
-  class ScopeGuard final {
-   public:
-    explicit ScopeGuard(SpinLock& lock) : lock_(lock) {
-      lock_.Lock();
-    }
-    
-    ~ScopeGuard() {
-      lock_.Unlock();
-    }
-    
-    // disallow copy and move operations
-    ScopeGuard(const ScopeGuard&) = delete;
-    ScopeGuard& operator=(const ScopeGuard&) = delete;
-    ScopeGuard(ScopeGuard&&) noexcept = delete;
-    ScopeGuard& operator=(ScopeGuard&&) noexcept = delete;
-    
-   private:
-    SpinLock& lock_;
-  };
-  
-  SpinLock() {
-    flag_.clear(std::memory_order_release);
+  EventfdInterrupterImpl() : fd_(-1) {
   }
 
-  ~SpinLock() = default;
+  ~EventfdInterrupterImpl();
 
-  void Lock() {
-    auto i = 0;
-    auto dummy = 0;
-    while (!TryLock()) {
-      i++;
-      if (i < 16) {
-        continue;
-      } else if (i < 32) {
-        dummy = i;
-        dummy++;
-      } else {
-        std::this_thread::yield(); // schedule this thread again
-      }
-    }
+  bool Create();
+
+  bool Interrupt();
+
+  bool Reset();
+
+  int get_read_fd() const {
+    return fd_;
   }
-
-  bool TryLock() {
-    return !flag_.test_and_set(std::memory_order_acquire);
-  }
-
-  void Unlock() {
-    flag_.clear(std::memory_order_release);
-  }
-
-  // disallow copy and move operations
-  SpinLock(const SpinLock&) = delete;
-  SpinLock& operator=(const SpinLock&) = delete;
-  SpinLock(SpinLock&&) noexcept = delete;
-  SpinLock& operator=(SpinLock&&) noexcept = delete;
 
  private:
-  std::atomic_flag flag_;
+  int fd_;
 };
 
-}  // namespace concurrency
+}  // namespace tcp
 }  // namespace cnetpp
 
-#endif  // CNETPP_CONCURRENCY_SPIN_LOCK_H_
+#endif  // CNETPP_TCP_EVENTFD_INTERRUPTER_IMPL_H_
+
