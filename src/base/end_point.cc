@@ -26,11 +26,10 @@
 //
 #include "end_point.h"
 
+#include <arpa/inet.h>
 #include <assert.h>
-#include <cstdlib>
 #include <netinet/in.h>
 
-#include "ip_address.h"
 #include "string_utils.h"
 
 namespace cnetpp {
@@ -51,7 +50,7 @@ bool EndPoint::ToSockAddr(struct sockaddr* address,
       *address_len = sizeof(struct sockaddr_in);
       auto in_address = reinterpret_cast<struct sockaddr_in*>(address);
       in_address->sin_family = AF_INET;
-      in_address->sin_port = ::htons(port_);
+      in_address->sin_port = htons(port_);
       ::memcpy(&(in_address->sin_addr),
                &((address_.address())[0]),
                IPAddress::kIPv4AddressSize);
@@ -62,10 +61,10 @@ bool EndPoint::ToSockAddr(struct sockaddr* address,
       *address_len = sizeof(struct sockaddr_in6);
       auto in6_address = reinterpret_cast<struct sockaddr_in6*>(address);
       in6_address->sin6_family = AF_INET6;
-      in6_address->sin6_port = ::htons(port_);
-      ::memcpy(&(in6_address->sin6_addr),
-               &((address_.address())[0]),
-               IPAddress::kIPv6AddressSize);
+      in6_address->sin6_port = htons(port_);
+      memcpy(&(in6_address->sin6_addr),
+             &((address_.address())[0]),
+             IPAddress::kIPv6AddressSize);
       break;
     }
     default:
@@ -91,11 +90,11 @@ bool EndPoint::FromSockAddr(const struct sockaddr& address,
       if (in_address->sin_family != AF_INET) {
         return error();
       }
-      port_ = ::ntohs(in_address->sin_port);
+      port_ = ntohs(in_address->sin_port);
       address_.mutable_address().resize(IPAddress::kIPv4AddressSize);
-      ::memcpy(&((address_.mutable_address())[0]),
-               &(in_address->sin_addr),
-               IPAddress::kIPv4AddressSize);
+      memcpy(&((address_.mutable_address())[0]),
+             &(in_address->sin_addr),
+             IPAddress::kIPv4AddressSize);
       break;
     }
 //    case IPAddress::kIPv6AddressSize: {
@@ -107,11 +106,11 @@ bool EndPoint::FromSockAddr(const struct sockaddr& address,
       if (in6_address->sin6_family != AF_INET6) {
         return error();
       }
-      port_ = ::ntohs(in6_address->sin6_port);
+      port_ = ntohs(in6_address->sin6_port);
       address_.mutable_address().resize(IPAddress::kIPv6AddressSize);
-      ::memcpy(&((address_.mutable_address())[0]),
-               &(in6_address->sin6_addr),
-               IPAddress::kIPv6AddressSize);
+      memcpy(&((address_.mutable_address())[0]),
+             &(in6_address->sin6_addr),
+             IPAddress::kIPv6AddressSize);
       break;
     }
     default:

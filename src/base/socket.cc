@@ -25,9 +25,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //
 #include "socket.h"
-#include <chrono>
-#include <time.h>
-#include <sys/time.h>
+#include <sys/uio.h>
 
 namespace cnetpp {
 namespace base {

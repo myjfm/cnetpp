@@ -1551,13 +1551,13 @@ bool ParserImpl::ParseValue(Value* value) {
     *value = Value(token.value);
     return true;
   case Token::Type::kInteger: {
-    *value = Value(static_cast<int64_t>(std::strtoll(token.value.c_str(),
-                                                     nullptr,
-                                                     10)));
+    *value = Value(static_cast<int64_t>(strtoll(token.value.c_str(),
+                                                nullptr,
+                                                10)));
     return true;
   }
   case Token::Type::kDouble: {
-    *value = Value(std::strtod(token.value.c_str(), nullptr));
+    *value = Value(strtod(token.value.c_str(), nullptr));
     return true;
   }
   case Token::Type::kTrue:

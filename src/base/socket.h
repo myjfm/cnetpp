@@ -213,10 +213,14 @@ class Socket {
   }
 
   bool SetTcpKeepAliveOption(int idle, int interval, int count) {
+#if __linux__
     return SetOption(SOL_SOCKET, SO_KEEPALIVE, 1) &&
            SetOption(SOL_TCP, TCP_KEEPIDLE, idle) &&
            SetOption(SOL_TCP, TCP_KEEPINTVL, interval) &&
            SetOption(SOL_TCP, TCP_KEEPCNT, count);
+#elif __APPLE__
+    return SetOption(SOL_SOCKET, SO_KEEPALIVE, 1);
+#endif
   }
 
   bool SetTcpNoDelay(bool onoff = true) {

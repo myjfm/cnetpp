@@ -24,9 +24,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 //
-#ifndef __linux__
-#error "Your operating system seems not be linux!"
-#endif
+#if defined(LINUX_SYSTEM) || defined(DARWIN_SYSTEM) || defined(UNIX_SYSTEM)
 
 #include "poll_event_poller_impl.h"
 
@@ -84,7 +82,7 @@ bool PollEventPollerImpl::Poll() {
     Event event(fd);
     int revents = poll_fds_[i].revents;
 
-    if (revents & (POLLRDHUP | POLLERR | POLLHUP | POLLNVAL)) {
+    if (revents & (POLLERR | POLLHUP | POLLNVAL)) {
       has_event = true;
       event.mutable_mask() |= static_cast<int>(Event::Type::kClose);
     } else {
@@ -156,3 +154,4 @@ bool PollEventPollerImpl::RemovePollerEvent(Event&& event) {
 }  // namespace tcp
 }  // namespace cnetpp
 
+#endif  // LINUX_SYSTEM OR DARWIN_SYSTEM OR UNIX_SYSTEM

@@ -30,7 +30,9 @@
 #include <errno.h>
 #include <pthread.h>
 #include <string.h>
+#if defined(LINUX_SYSTEM)
 #include <syscall.h>
+#endif
 #include <unistd.h>
 
 #include <thread>
@@ -44,6 +46,7 @@ class ThisThread {
      std::this_thread::yield();
    }
 
+#if defined(LINUX_SYSTEM)
    // this method can get the thread id with int type
    static int GetId() {
      static thread_local pid_t tid = 0;
@@ -52,6 +55,7 @@ class ThisThread {
      }
      return tid;
    }
+#endif
 
    // we don't use std::chrono just for convenience
    static void Sleep(int64_t time_in_milliseconds) {

@@ -28,12 +28,12 @@
 #include "event_center.h"
 #include "interrupter.h"
 
-#if defined(USE_SELECT)
-#include "select_event_poller_impl.h"
-#elif defined(USE_POLL)
+#if defined(LINUX_SYSTEM)
+#include "epoll_event_poller_impl.h"
+#elif defined(DARWIN_SYSTEM) || defined(UNIX_SYSTEM)
 #include "poll_event_poller_impl.h"
 #else
-#include "epoll_event_poller_impl.h"
+#include "select_event_poller_impl.h"
 #endif
 
 namespace cnetpp {
@@ -41,15 +41,15 @@ namespace tcp {
 
 std::shared_ptr<EventPoller> EventPoller::New(size_t id,
                                               size_t max_connections) {
-#if defined(USE_SELECT)
+#if defined(LINUX_SYSTEM)
   return std::shared_ptr<EventPoller>(
-      new SelectEventPollerImpl(id, max_connections));
-#elif defined(USE_POLL)
+      new EpollEventPollerImpl(id, max_connections));
+#elif defined(DARWIN_SYSTEM) || defined(UNIX_SYSTEM)
   return std::shared_ptr<EventPoller>(
       new PollEventPollerImpl(id, max_connections));
 #else
   return std::shared_ptr<EventPoller>(
-      new EpollEventPollerImpl(id, max_connections));
+      new SelectEventPollerImpl(id, max_connections));
 #endif
 }
 

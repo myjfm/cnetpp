@@ -24,10 +24,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 //
-#ifndef __linux__
-#error "Your operating system seems not be linux!"
-#endif
-
+#ifdef LINUX_SYSTEM
 #include "epoll_event_poller_impl.h"
 
 #include <errno.h>
@@ -126,4 +123,6 @@ bool EpollEventPollerImpl::RemovePollerEvent(Event&& ev) {
 
 }  // namespace tcp
 }  // namespace cnetpp
+
+#endif  // LINUX_SYSTEM
 

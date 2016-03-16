@@ -24,10 +24,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 //
-#ifndef __linux__
-#error "Your operating system seems not be linux!"
-#endif
-
+#if !defined(DARWIN_SYSTEM)
 #include "select_event_poller_impl.h"
 
 #include <sys/select.h>
@@ -152,3 +149,6 @@ int SelectEventPollerImpl::BuildFdsets(fd_set* rd_fdset, fd_set* wr_fdset,
 }
 }  // namespace tcp
 }  // namespace cnetpp
+
+#endif  // !DARWIN_SYSTEM
+

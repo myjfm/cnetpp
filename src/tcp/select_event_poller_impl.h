@@ -24,10 +24,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 //
-#ifndef __linux__
-#error "Your operating system seems not be linux!"
-#endif
-
+#if !defined(DARWIN_SYSTEM)
 #ifndef CNETPP_TCP_SELECT_EVENT_POLLER_IMPL_H_
 #define CNETPP_TCP_SELECT_EVENT_POLLER_IMPL_H_
 
@@ -67,3 +64,5 @@ class SelectEventPollerImpl : public EventPoller {
 }  // namespace cnetpp
 
 #endif  // CNETPP_TCP_SELECT_EVENT_POLLER_IMPL_H_
+#endif  // !DARWIN_SYSTEM
+

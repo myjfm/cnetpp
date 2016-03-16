@@ -24,6 +24,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 //
+#ifdef LINUX_SYSTEM
 #include "eventfd_interrupter_impl.h"
 
 #include <sys/eventfd.h>
@@ -58,3 +59,4 @@ bool EventfdInterrupterImpl::Reset() {
 }  // namespace tcp
 }  // namespace cnetpp
 
+#endif  // LINUX_SYSTEM
