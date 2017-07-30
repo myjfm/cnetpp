@@ -138,8 +138,7 @@ bool EventCenter::ProcessEvent(const Event& event, size_t id) {
   if (event.mask() & static_cast<int>(Event::Type::kClose)) {
     if (itr != connections.end()) {
       auto connection = itr->second;
-      connections.erase(itr);
-      connection->HandleCloseConnection();
+      connection->MarkAsClosed();
     } /* else { // this connection has been closed. } */
   } else {
     if (event.mask() & static_cast<int>(Event::Type::kRead)) {

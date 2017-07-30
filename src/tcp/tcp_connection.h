@@ -146,8 +146,7 @@ class TcpConnection : public ConnectionBase {
   void HandleReadableEvent(EventCenter* event_center) override;
   void HandleWriteableEvent(EventCenter* event_center) override;
   void HandleCloseConnection() override;
-
-  void MarkAsClosed();
+  void MarkAsClosed() override;
 
  private:
   TcpConnection(std::shared_ptr<EventCenter> event_center, int fd)

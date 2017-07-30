@@ -157,14 +157,16 @@ void TcpConnection::HandleWriteableEvent(EventCenter* event_center) {
       closed = true;
     } else {
       if (sent_length > 0) {
+        bool all_sent = true;
         int type = static_cast<int>(Command::Type::kReadable);
         if (sent_length != send_buffer_.Size()) {
           type |= static_cast<int>(Command::Type::kWriteable);
+          all_sent = false;
         }
         send_buffer_.CommitRead(sent_length);
         Command command(type, shared_from_this());
         event_center->AddCommand(command);
-        if (sent_callback_) {
+        if (all_sent && sent_callback_) {
           sent_callback_(
               true,
               std::static_pointer_cast<TcpConnection>(shared_from_this()));

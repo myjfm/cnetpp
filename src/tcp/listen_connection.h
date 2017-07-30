@@ -58,6 +58,8 @@ class ListenConnection : public ConnectionBase {
   virtual void HandleWriteableEvent(EventCenter* event_center) override;
   virtual void HandleCloseConnection() override {
   }
+  virtual void MarkAsClosed() override {
+  }
 
  private:
   ListenConnection(std::shared_ptr<EventCenter> event_center, int fd)

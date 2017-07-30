@@ -81,6 +81,7 @@ class ConnectionBase : public std::enable_shared_from_this<ConnectionBase> {
   virtual void HandleReadableEvent(EventCenter* event_center) = 0;
   virtual void HandleWriteableEvent(EventCenter* event_center) = 0;
   virtual void HandleCloseConnection() = 0;
+  virtual void MarkAsClosed() = 0;
 
  protected:
   ConnectionBase(std::shared_ptr<EventCenter> event_center, int fd)
