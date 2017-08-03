@@ -41,8 +41,10 @@ class TcpOptions {
  public:
   TcpOptions()
       : max_command_queue_len_(1024),
-        send_buffer_size_(32 * 1024),
-        receive_buffer_size_(32 * 1024) {
+        tcp_send_buffer_size_(32 * 1024),
+        tcp_receive_buffer_size_(32 * 1024),
+        send_buffer_size_(-1),
+        receive_buffer_size_(-1) {
   }
   virtual ~TcpOptions() = default;
 
@@ -51,6 +53,20 @@ class TcpOptions {
   }
   void set_max_command_queue_len(size_t len) {
     max_command_queue_len_ = len;
+  }
+
+  size_t tcp_send_buffer_size() const {
+    return tcp_send_buffer_size_;
+  }
+  void set_tcp_send_buffer_size(size_t size) {
+    tcp_send_buffer_size_ = size;
+  }
+
+  size_t tcp_receive_buffer_size() const {
+    return tcp_receive_buffer_size_;
+  }
+  void set_tcp_receive_buffer_size(size_t size) {
+    tcp_receive_buffer_size_ = size;
   }
 
   size_t send_buffer_size() const {
@@ -109,6 +125,8 @@ class TcpOptions {
 
  private:
   size_t max_command_queue_len_;
+  size_t tcp_send_buffer_size_;
+  size_t tcp_receive_buffer_size_;
   size_t send_buffer_size_;
   size_t receive_buffer_size_;
   ConnectedCallbackType connected_callback_ { nullptr };

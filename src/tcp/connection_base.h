@@ -45,6 +45,13 @@ class EventCenter;
 
 class ConnectionBase : public std::enable_shared_from_this<ConnectionBase> {
  public:
+  enum class State : int8_t {
+    kConnecting,
+    kConnected,
+    kClosing,
+    kClosed,
+  };
+
   virtual ~ConnectionBase() = default;
 
   const base::TcpSocket& socket() const {
@@ -56,6 +63,13 @@ class ConnectionBase : public std::enable_shared_from_this<ConnectionBase> {
 
   ConnectionId id() const {
     return id_;
+  }
+
+  const std::thread::id& ep_thread_id() const {
+    return ep_thread_id_;
+  }
+  void set_ep_thread_id() {
+    ep_thread_id_ = std::this_thread::get_id();
   }
 
   const ConnectedCallbackType& connected_callback() const {
@@ -75,13 +89,20 @@ class ConnectionBase : public std::enable_shared_from_this<ConnectionBase> {
     cached_event_type_ = event_type;
   }
 
+  State state() const {
+    return state_;
+  }
+  void set_state(State state) {
+    state_ = state;
+  }
+
   // These three methods will be called by the event poller thread when a
   // socket fd becomes readable or writable
   // NOTE: user should not care about them
   virtual void HandleReadableEvent(EventCenter* event_center) = 0;
   virtual void HandleWriteableEvent(EventCenter* event_center) = 0;
   virtual void HandleCloseConnection() = 0;
-  virtual void MarkAsClosed() = 0;
+  virtual void MarkAsClosed(bool immediately = true) = 0;
 
  protected:
   ConnectionBase(std::shared_ptr<EventCenter> event_center, int fd)
@@ -95,9 +116,14 @@ class ConnectionBase : public std::enable_shared_from_this<ConnectionBase> {
   ConnectionId id_;
   base::TcpSocket socket_;
 
+  // the event poller thread id
+  std::thread::id ep_thread_id_;
+
   ConnectedCallbackType connected_callback_ { nullptr };
 
   int cached_event_type_ { 0 };
+
+  State state_ { State::kConnecting };
 };
 
 }  // namespace tcp

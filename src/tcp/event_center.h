@@ -58,7 +58,7 @@ class EventCenter final : public std::enable_shared_from_this<EventCenter> {
 
   void Shutdown();
 
-  void AddCommand(const Command& command, int id = -1);
+  void AddCommand(const Command& command, bool async = true);
 
   bool ProcessAllPendingCommands(size_t id);
 
@@ -103,6 +103,10 @@ class EventCenter final : public std::enable_shared_from_this<EventCenter> {
   using InternalEventPollerInfoPtr = std::shared_ptr<InternalEventPollerInfo>;
 
   std::vector<InternalEventPollerInfoPtr> internal_event_poller_infos_;
+
+  void ProcessPendingCommand(InternalEventPollerInfoPtr info,
+      const Command& command);
+
 };
 
 }  // namespace tcp

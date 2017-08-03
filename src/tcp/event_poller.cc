@@ -85,7 +85,7 @@ bool EventPoller::ProcessCommand(const Command& command) {
   }
   if (command.type() & static_cast<int>(Command::Type::kAddConn)) {
     return AddPollerEvent(Event(command.connection()->socket().fd(), type));
-  } else if (command.type() & static_cast<int>(Command::Type::kRemoveConn)) {
+  } else if (command.type() & static_cast<int>(Command::Type::kRemoveConnImmediately)) {
     type |= static_cast<int>(Event::Type::kClose);
     return RemovePollerEvent(Event(command.connection()->socket().fd(), type));
   } else if (command.type() & static_cast<int>(Command::Type::kReadable) ||
@@ -95,8 +95,8 @@ bool EventPoller::ProcessCommand(const Command& command) {
     }
     command.connection()->set_cached_event_type(command.type());
     return ModifyPollerEvent(Event(command.connection()->socket().fd(), type));
-  } else {
-    return false;
+  } else if (command.type() & static_cast<int>(Command::Type::kRemoveConn)) {
+    return true;
   }
   return false;
 }

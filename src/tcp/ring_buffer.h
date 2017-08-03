@@ -52,6 +52,9 @@ class RingBuffer {
     assert(buffer_);
   }
   ~RingBuffer() {
+    if (buffer_) {
+      delete [] buffer_;
+    }
   }
 
   size_t Capacity() {

@@ -27,8 +27,10 @@
 #include "tcp_connection.h"
 
 #include <assert.h>
+#include <memory>
 
 #include "command.h"
+#include "ring_buffer.h"
 #include "event_center.h"
 #include "../base/socket.h"
 
@@ -43,23 +45,27 @@ bool TcpConnection::SendPacket() {
   if (!event_center.get()) {
     return false;
   }
-  event_center->AddCommand(command);
+  event_center->AddCommand(command,
+      ep_thread_id_ != std::this_thread::get_id());
   return true;
 }
 
 bool TcpConnection::SendPacket(base::StringPiece data) {
-  if (!send_buffer_.Write(data)) {
-    return false;
+  auto send_buffer = std::make_unique<RingBuffer>(data.size());
+  bool r = send_buffer->Write(data);
+  assert(r);
+  {
+    concurrency::SpinLock::ScopeGuard guard(send_lock_);
+    send_buffers_.emplace_back(std::move(send_buffer));
   }
   return SendPacket();
 }
 
 // This method will be called when a socket fd becomes readable
 void TcpConnection::HandleReadableEvent(EventCenter* event_center) {
-  bool received = false;
   bool closed = false;
 
-  if (!connected_) {
+  if (state_ == State::kConnecting) {
     int error = 0;
     socklen_t error_length = sizeof(error);
     if (!socket_.GetOption(SOL_SOCKET, SO_ERROR, &error, &error_length) ||
@@ -68,24 +74,27 @@ void TcpConnection::HandleReadableEvent(EventCenter* event_center) {
     } else if (error == EINPROGRESS) {
       return;
     } else {
+      state_ = State::kConnected;
       if (connected_callback_) {
         // call callback user defined
         connected_callback_(
             std::static_pointer_cast<TcpConnection>(shared_from_this()));
       }
-      connected_ = true;
     }
   }
 
-  if (connected_) {
+  if (state_ == State::kConnected) {
     // handle new arrival data
-    struct iovec buffers[2];
-    recv_buffer_.GetWritePositions(buffers, 2);
     while (true) {
+      if (recv_buffer_.Capacity() - recv_buffer_.Size() < 512) {
+        recv_buffer_.Resize(recv_buffer_.Capacity() + 4096);
+      }
+      struct iovec buffers[2];
+      recv_buffer_.GetWritePositions(buffers, 2);
       size_t received_length = 0;
       bool ret = socket_.Receive(buffers, 2, &received_length, true);
       status_ = cnetpp::concurrency::ThisThread::GetLastError();
-      error_message_ = cnetpp::concurrency::ThisThread::GetLastErrorString();
+      //error_message_ = cnetpp::concurrency::ThisThread::GetLastErrorString();
       if (!ret && (status_ == EAGAIN || status_ == EWOULDBLOCK)) {
         break;
       } else if (!ret || received_length == 0) {
@@ -94,39 +103,43 @@ void TcpConnection::HandleReadableEvent(EventCenter* event_center) {
       } else {
         // really received data
         recv_buffer_.CommitWrite(received_length);
-        received = true;
-        break;
+        if (received_callback_) {
+          received_callback_(
+              std::static_pointer_cast<TcpConnection>(shared_from_this()));
+        }
       }
     }
   }
 
-  if (received && received_callback_) {
-    received_callback_(
-        std::static_pointer_cast<TcpConnection>(shared_from_this()));
-  }
-
   bool tmp = false;
-  if (closed && closed_.compare_exchange_weak(tmp, closed)) {
+  if (closed && state_ != State::kClosed) {
     // remove this connection from event center
-    Command command(static_cast<int>(Command::Type::kRemoveConn),
+    Command command(static_cast<int>(Command::Type::kRemoveConnImmediately),
                     shared_from_this());
-    event_center->AddCommand(command);
+    event_center->AddCommand(command, false/* only ep thread could be here */);
   }
 }
 
 void TcpConnection::HandleWriteableEvent(EventCenter* event_center) {
-  if (send_buffer_.Size() <= 0) {
-    if (connected_) {
+  send_lock_.Lock();
+  if (send_buffers_.empty()) {
+    send_lock_.Unlock();
+    if (state_ == State::kConnected) {
       Command command(static_cast<int>(Command::Type::kReadable),
-                      shared_from_this());
-      event_center->AddCommand(command);
+          shared_from_this());
+      event_center->AddCommand(command, false);
+    } else if (state_ == State::kClosing) {
+      Command command(static_cast<int>(Command::Type::kRemoveConnImmediately),
+          shared_from_this());
+      event_center->AddCommand(command, false);
     }
     // do nothing
     return;
   }
+  send_lock_.Unlock();
 
   bool closed = false;
-  if (!connected_) {
+  if (state_ == State::kConnecting) {
     int error = 0;
     socklen_t error_length = sizeof(error);
     if (!socket_.GetOption(SOL_SOCKET, SO_ERROR, &error, &error_length) ||
@@ -135,7 +148,7 @@ void TcpConnection::HandleWriteableEvent(EventCenter* event_center) {
     } else if (error == EINPROGRESS) {
       return;
     } else {
-      connected_ = true;
+      state_ = State::kConnected;
       if (connected_callback_) {
         // call callback user defined
         connected_callback_(
@@ -144,48 +157,71 @@ void TcpConnection::HandleWriteableEvent(EventCenter* event_center) {
     }
   }
 
-  if (connected_) {
-    size_t sent_length = 0;
-    struct iovec buffers[2];
-    send_buffer_.GetReadPositions(buffers, 2);
-    bool ret = socket_.Send(buffers, 2, &sent_length, true);
-    status_ = cnetpp::concurrency::ThisThread::GetLastError();
-    error_message_ = cnetpp::concurrency::ThisThread::GetLastErrorString();
-    if (!ret && status_ == EAGAIN) {
-      return;
-    } else if (!ret) {
-      closed = true;
-    } else {
-      if (sent_length > 0) {
-        bool all_sent = true;
-        int type = static_cast<int>(Command::Type::kReadable);
-        if (sent_length != send_buffer_.Size()) {
-          type |= static_cast<int>(Command::Type::kWriteable);
-          all_sent = false;
-        }
-        send_buffer_.CommitRead(sent_length);
-        Command command(type, shared_from_this());
-        event_center->AddCommand(command);
-        if (all_sent && sent_callback_) {
-          sent_callback_(
-              true,
-              std::static_pointer_cast<TcpConnection>(shared_from_this()));
+  if (state_ == State::kConnected || state_ == State::kClosing) {
+    while (true) {
+      send_lock_.Lock();
+      auto& send_buffer = send_buffers_.front();
+      send_lock_.Unlock();
+      size_t sent_length = 0;
+      struct iovec buffers[2];
+      send_buffer->GetReadPositions(buffers, 2);
+      bool ret = socket_.Send(buffers, 2, &sent_length, true);
+      status_ = cnetpp::concurrency::ThisThread::GetLastError();
+      //error_message_ = cnetpp::concurrency::ThisThread::GetLastErrorString();
+      if (!ret && status_ == EAGAIN) {
+        return;
+      } else if (!ret) {
+        closed = true;
+        break;
+      } else {
+        if (sent_length > 0) {
+          if (sent_length != send_buffer->Size()) {
+            send_buffer->CommitRead(sent_length);
+            int type = static_cast<int>(Command::Type::kReadable) |
+              static_cast<int>(Command::Type::kWriteable);
+            event_center->AddCommand(Command(type, shared_from_this()), false);
+            return;
+          } else {
+            bool all_sent = false;
+            send_lock_.Lock();
+            send_buffers_.pop_front();
+            if (send_buffers_.empty()) {
+              all_sent = true;
+            }
+            send_lock_.Unlock();
+            if (all_sent && state_ != State::kClosing) {
+              int type = static_cast<int>(Command::Type::kReadable);
+              event_center->AddCommand(Command(type, shared_from_this()),
+                  false);
+            }
+            if (sent_callback_) {
+              sent_callback_(true,
+                  std::static_pointer_cast<TcpConnection>(shared_from_this()));
+            }
+            if (all_sent) {
+              if (state_ == State::kClosing) {
+                closed = true;
+              }
+              break;
+            }
+          }
         }
       }
     }
   }
 
-  bool tmp = false;
-  if (closed && closed_.compare_exchange_weak(tmp, closed)) {
-    // remove this connection from event center
-    Command command(static_cast<int>(Command::Type::kRemoveConn),
+  if (closed && state_ != State::kClosed) {
+    Command command(static_cast<int>(Command::Type::kRemoveConnImmediately),
                     shared_from_this());
-    event_center->AddCommand(command);
+    event_center->AddCommand(command, false);
   }
 }
 
 void TcpConnection::HandleCloseConnection() {
-  assert(closed_.load(std::memory_order_relaxed));
+  if (state_ == State::kClosed) {
+    return;
+  }
+  state_ = State::kClosed;
   if (closed_callback_) {
     closed_callback_(
         std::static_pointer_cast<TcpConnection>(shared_from_this()));
@@ -193,16 +229,18 @@ void TcpConnection::HandleCloseConnection() {
   socket_.Close();
 }
 
-void TcpConnection::MarkAsClosed() {
-  bool tmp = false;
-  if (closed_.compare_exchange_weak(tmp, true)) {
-    // remove this connection from event center
-    Command command(static_cast<int>(Command::Type::kRemoveConn),
-                    shared_from_this());
-    auto event_center = event_center_.lock();
-    if (event_center.get()) {
-      event_center->AddCommand(command);
-    }
+void TcpConnection::MarkAsClosed(bool immediately) {
+  int type = 0;
+  if (immediately) {
+    type = static_cast<int>(Command::Type::kRemoveConnImmediately);
+  } else {
+    type = static_cast<int>(Command::Type::kRemoveConn);
+  }
+  Command command(type, shared_from_this());
+  auto event_center = event_center_.lock();
+  if (event_center.get()) {
+    event_center->AddCommand(command,
+        ep_thread_id_ != std::this_thread::get_id());
   }
 }
 

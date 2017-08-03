@@ -58,7 +58,7 @@ class ListenConnection : public ConnectionBase {
   virtual void HandleWriteableEvent(EventCenter* event_center) override;
   virtual void HandleCloseConnection() override {
   }
-  virtual void MarkAsClosed() override {
+  virtual void MarkAsClosed(bool immediately = true) override {
   }
 
  private:

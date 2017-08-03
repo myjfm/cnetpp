@@ -56,8 +56,8 @@ bool TcpServer::Launch(const base::EndPoint& local_address,
 
   if (!listen_socket.SetCloexec(true) ||
       !listen_socket.SetBlocking(false) ||
-      !listen_socket.SetReceiveBufferSize(options.receive_buffer_size()) ||
-      !listen_socket.SetSendBufferSize(options.send_buffer_size()) ||
+      !listen_socket.SetReceiveBufferSize(options.tcp_receive_buffer_size()) ||
+      !listen_socket.SetSendBufferSize(options.tcp_send_buffer_size()) ||
       !listen_socket.SetReuseAddress(true) ||
       !listen_socket.Listen()) {
     return false;
@@ -74,7 +74,7 @@ bool TcpServer::Launch(const base::EndPoint& local_address,
   // add the listen fd onto multiplexer
   Command cmd(static_cast<int>(Command::Type::kAddConn),
               std::static_pointer_cast<ConnectionBase>(listener));
-  event_center_->AddCommand(cmd);
+  event_center_->AddCommand(cmd, true);
 
   listen_socket.Detach();
   return true;

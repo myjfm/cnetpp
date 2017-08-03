@@ -82,18 +82,21 @@ void EventCenter::Shutdown() {
   internal_event_poller_infos_.clear();
 }
 
-void EventCenter::AddCommand(const Command& command, int id) {
-  if (id < 0) {
-    id = command.connection()->id() % internal_event_poller_infos_.size();
-  }
+void EventCenter::AddCommand(const Command& command, bool async) {
+  int id = command.connection()->id() % internal_event_poller_infos_.size();
 
   auto& info = internal_event_poller_infos_[id];
-  {
-    std::unique_lock<std::mutex> guard(info->pending_commands_mutex_);
-    (info->pending_commands_).push_back(command);
-  }
+  if (async) {
+    {
+      std::lock_guard<std::mutex> guard(info->pending_commands_mutex_);
+      (info->pending_commands_).push_back(command);
+    }
 
-  info->event_poller_->Interrupt();
+    info->event_poller_->Interrupt();
+  } else {
+    assert(command.connection()->ep_thread_id() == std::this_thread::get_id());
+    ProcessPendingCommand(info, command);
+  }
 }
 
 bool EventCenter::ProcessAllPendingCommands(size_t id) {
@@ -102,25 +105,36 @@ bool EventCenter::ProcessAllPendingCommands(size_t id) {
   }
 
   auto& info = internal_event_poller_infos_[id];
-  std::unique_lock<std::mutex> guard(info->pending_commands_mutex_);
   std::vector<Command> pending_commands;
-  pending_commands.swap(info->pending_commands_);
-  guard.unlock();
+  {
+    std::lock_guard<std::mutex> guard(info->pending_commands_mutex_);
+    pending_commands.swap(info->pending_commands_);
+  }
 
   for (auto& command : pending_commands) {
-    if (info->event_poller_->ProcessCommand(command)) {
-      if (command.type() & static_cast<int>(Command::Type::kAddConn)) {
-        info->connections_[command.connection()->socket().fd()] =
-            command.connection();
-        command.connection()->HandleReadableEvent(this);
-      }
-      if (command.type() & static_cast<int>(Command::Type::kRemoveConn)) {
-        (info->connections_).erase(command.connection()->socket().fd());
-        command.connection()->HandleCloseConnection();
-      }
-    }
+    ProcessPendingCommand(info, command);
   }
   return true;
+}
+
+void EventCenter::ProcessPendingCommand(InternalEventPollerInfoPtr info,
+    const Command& command) {
+  if (info->event_poller_->ProcessCommand(command)) {
+    if (command.type() & static_cast<int>(Command::Type::kAddConn)) {
+      info->connections_[command.connection()->socket().fd()] =
+        command.connection();
+      command.connection()->set_ep_thread_id();
+      command.connection()->HandleReadableEvent(this);
+    } else if (command.type() &
+        static_cast<int>(Command::Type::kRemoveConnImmediately)) {
+      (info->connections_).erase(command.connection()->socket().fd());
+      command.connection()->HandleCloseConnection();
+    } else if (command.type() &
+        static_cast<int>(Command::Type::kRemoveConn)) {
+      command.connection()->set_state(ConnectionBase::State::kClosing);
+      command.connection()->HandleWriteableEvent(this);
+    }
+  }
 }
 
 bool EventCenter::ProcessEvent(const Event& event, size_t id) {
@@ -135,21 +149,17 @@ bool EventCenter::ProcessEvent(const Event& event, size_t id) {
 
   auto& connections = internal_event_poller_infos_[id]->connections_;
   auto itr = connections.find(event.fd());
-  if (event.mask() & static_cast<int>(Event::Type::kClose)) {
-    if (itr != connections.end()) {
-      auto connection = itr->second;
-      connection->MarkAsClosed();
-    } /* else { // this connection has been closed. } */
-  } else {
-    if (event.mask() & static_cast<int>(Event::Type::kRead)) {
-      if (itr != connections.end()) {
-        itr->second->HandleReadableEvent(this);
-      } /* else { // this connection has been closed. } */
-    }
-    if (event.mask() & static_cast<int>(Event::Type::kWrite)) {
-      if (itr != connections.end()) {
-        itr->second->HandleWriteableEvent(this);
-      } /* else { // this connection has been closed. } */
+  if (itr != connections.end()) {
+    auto connection = itr->second;
+    if (event.mask() & static_cast<int>(Event::Type::kClose)) {
+      connection->MarkAsClosed(true);
+    } else {
+      if (event.mask() & static_cast<int>(Event::Type::kRead)) {
+        connection->HandleReadableEvent(this);
+      }
+      if (event.mask() & static_cast<int>(Event::Type::kWrite)) {
+        connection->HandleWriteableEvent(this);
+      }
     }
   }
 

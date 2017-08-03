@@ -123,9 +123,9 @@ class HttpConnection : public std::enable_shared_from_this<HttpConnection> {
 
   bool OnClosed();
 
-  void MarkAsClosed() {
+  void MarkAsClosed(bool immediately = true) {
     if (tcp_connection_.get()) {
-      tcp_connection_->MarkAsClosed();
+      tcp_connection_->MarkAsClosed(immediately);
     }
   }
 

@@ -56,11 +56,10 @@ void ListenConnection::HandleReadableEvent(EventCenter* event_center) {
   new_socket.SetTcpNoDelay(true);
   new_socket.SetKeepAlive(true);
   new_socket.SetLinger(false);
+  new_socket.SetSendBufferSize(options_.tcp_send_buffer_size());
+  new_socket.SetReceiveBufferSize(options_.tcp_receive_buffer_size());
 
   ConnectionFactory cf;
-  // TODO(myjfm)
-  // new_socket.SetSendBufferSize(xxx);
-  // new_socket.SetReceiveBufferSize(xxx);
   auto new_connection =
       cf.CreateConnection(event_center_.lock(), new_socket.fd(), false);
   auto new_tcp_connection =
@@ -68,7 +67,7 @@ void ListenConnection::HandleReadableEvent(EventCenter* event_center) {
   new_tcp_connection->set_closed_callback(options_.closed_callback());
   new_tcp_connection->set_sent_callback(options_.sent_callback());
   new_tcp_connection->set_received_callback(options_.received_callback());
-  new_tcp_connection->set_connected(true);
+  new_tcp_connection->set_state(TcpConnection::State::kConnected);
   new_tcp_connection->SetSendBufferSize(options_.send_buffer_size());
   new_tcp_connection->SetRecvBufferSize(options_.receive_buffer_size());
   new_tcp_connection->set_remote_end_point(std::move(remote_end_point));
@@ -80,19 +79,16 @@ void ListenConnection::HandleReadableEvent(EventCenter* event_center) {
     connected_callback_(new_tcp_connection);
   }
 
-  Command command(static_cast<int>(Command::Type::kAddConn) |
-      static_cast<int>(Command::Type::kWriteable) |
-      static_cast<int>(Command::Type::kReadable),
-      new_connection);
-  event_center->AddCommand(command);
+  event_center->AddCommand(
+      Command(static_cast<int>(Command::Type::kAddConn), new_connection), true);
   return;
 }
 
 void ListenConnection::HandleWriteableEvent(EventCenter* event_center) {
   assert(event_center);
-  Command command(static_cast<int>(Command::Type::kReadable),
-                  shared_from_this());
-  event_center->AddCommand(command);
+  event_center->AddCommand(
+      Command(static_cast<int>(Command::Type::kReadable), shared_from_this()),
+      true);
 }
 
 }  // namespace tcp

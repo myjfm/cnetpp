@@ -42,6 +42,7 @@ class HttpServerHandler final {
     std::string str_response;
     http_response->ToString(&str_response);
     c->SendPacket(str_response);
+    //c->MarkAsClosed(false);
     return true;
   }
 

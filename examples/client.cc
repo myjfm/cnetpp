@@ -65,6 +65,7 @@ int main(int argc, const char **argv) {
       }
       if (counts[c->id()]++ == 10) {
         c->MarkAsClosed();
+        std::cout << "MarkAsClosed()" << std::endl;
         return true;
       } else {
         return send_func(c);

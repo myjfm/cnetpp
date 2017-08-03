@@ -45,8 +45,9 @@ class Command final {
     kDummy = 0x0,
     kAddConn = 0x1,
     kRemoveConn = 0x2,
-    kReadable = 0x4,
-    kWriteable = 0x8,
+    kRemoveConnImmediately = 0x4,
+    kReadable = 0x8,
+    kWriteable = 0xf,
   };
 
   Command(int type,

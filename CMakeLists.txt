@@ -16,7 +16,7 @@ else()
     add_definitions(-DUNIX_SYSTEM)
 endif()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -std=c++11")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -std=c++14")
 
 file(GLOB HTTP_HEADER_FILES "src/http/*.h")
 file(GLOB HTTP_SOURCE_FILES "src/http/*.cc")

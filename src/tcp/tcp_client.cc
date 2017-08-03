@@ -64,6 +64,8 @@ ConnectionId TcpClient::Connect(const base::EndPoint* remote,
       !socket.SetBlocking(false) ||
       !socket.SetTcpNoDelay() ||
       !socket.SetKeepAlive() ||
+      !socket.SetSendBufferSize(options.tcp_send_buffer_size()) ||
+      !socket.SetReceiveBufferSize(options.tcp_receive_buffer_size()) ||
       !socket.Connect(*remote)) {
     return kInvalidConnectionId;
   }
@@ -108,8 +110,8 @@ ConnectionId TcpClient::Connect(const base::EndPoint* remote,
 
   socket.Detach();
 
-  Command cmd(static_cast<int>(Command::Type::kAddConn), connection);
-  event_center_->AddCommand(cmd);
+  event_center_->AddCommand(
+      Command(static_cast<int>(Command::Type::kAddConn), connection), true);
   return connection->id();
 }
 

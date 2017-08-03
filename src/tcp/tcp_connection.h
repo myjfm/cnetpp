@@ -32,10 +32,12 @@
 #include <atomic>
 #include <memory>
 #include <string>
+#include <list>
 
 #include "ring_buffer.h"
 #include "tcp_callbacks.h"
 #include "../base/string_piece.h"
+#include "../concurrency/spin_lock.h"
 
 namespace cnetpp {
 namespace tcp {
@@ -46,23 +48,15 @@ class EventCenter;
 class TcpConnection : public ConnectionBase {
  public:
   friend class ConnectionFactory;
+
   virtual ~TcpConnection() = default;
 
   void SetSendBufferSize(size_t send_buffer_size) {
-    RingBuffer tmp(send_buffer_size);
-    std::swap(tmp, send_buffer_);
+    send_buffer_size_ = send_buffer_size;
   }
 
   void SetRecvBufferSize(size_t recv_buffer_size) {
-    RingBuffer tmp(recv_buffer_size);
-    std::swap(tmp, recv_buffer_);
-  }
-
-  const RingBuffer& send_buffer() const {
-    return send_buffer_;
-  }
-  RingBuffer& mutable_send_buffer() {
-    return send_buffer_;
+    receive_buffer_size_ = recv_buffer_size;
   }
 
   const RingBuffer& recv_buffer() const {
@@ -70,13 +64,6 @@ class TcpConnection : public ConnectionBase {
   }
   RingBuffer& mutable_recv_buffer() {
     return recv_buffer_;
-  }
-
-  bool connected() const {
-    return connected_;
-  }
-  void set_connected(bool connected) {
-    connected_ = connected;
   }
 
   int status() const {
@@ -137,36 +124,37 @@ class TcpConnection : public ConnectionBase {
     remote_end_point_ = std::move(remote_end_point);
   }
 
-  bool SendPacket();
   bool SendPacket(base::StringPiece data);
 
-  // These two methods will be called by the event poller thread when a
-  // socket fd becomes readable
+  // These three methods will be called by the event poller thread when a
+  // socket fd becomes readable or writable
   // NOTE: user should not care about them
   void HandleReadableEvent(EventCenter* event_center) override;
   void HandleWriteableEvent(EventCenter* event_center) override;
   void HandleCloseConnection() override;
-  void MarkAsClosed() override;
+
+  void MarkAsClosed(bool immediately = true) override;
 
  private:
   TcpConnection(std::shared_ptr<EventCenter> event_center, int fd)
       : ConnectionBase(event_center, fd),
-        send_buffer_(0),
         recv_buffer_(0) {
   }
 
-  base::EndPoint remote_end_point_;
+  bool SendPacket();
 
-  // indicates whether the connection has been established
-  volatile bool connected_ { false };
-  // indicates whether the connection has been shutted down
-  std::atomic<bool> closed_ { false };
+  base::EndPoint remote_end_point_;
 
   int status_ { 0 }; // equal to errno
   std::string error_message_;
 
-  RingBuffer send_buffer_;
+  concurrency::SpinLock send_lock_;
+  std::list<std::unique_ptr<RingBuffer>> send_buffers_;
+
   RingBuffer recv_buffer_;
+
+  size_t receive_buffer_size_;
+  size_t send_buffer_size_;
 
   ClosedCallbackType closed_callback_ { nullptr };
   SentCallbackType sent_callback_ { nullptr };
