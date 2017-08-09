@@ -105,6 +105,8 @@ class RingBuffer {
     Read(data, size_);
   }
 
+  bool ReadUint32(uint32_t* value);
+
   bool Find(const std::string& delimiters, base::StringPiece* data) {
     return DoFind(delimiters, data);
   }

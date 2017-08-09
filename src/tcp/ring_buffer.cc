@@ -26,6 +26,8 @@
 //
 #include "ring_buffer.h"
 
+#include "base/string_utils.h"
+
 #include <assert.h>
 #include <sys/uio.h>
 
@@ -197,6 +199,22 @@ bool RingBuffer::Read(std::string* data, size_t n) {
     data->append(buffer_ + begin_, n);
     begin_ += n;
   }
+  return true;
+}
+
+bool RingBuffer::ReadUint32(uint32_t* value) {
+  assert(value);
+  if (size_ < sizeof(uint32_t)) {
+    return false;
+  }
+  if (end_ <= begin_) {
+    Reform();
+  }
+
+  base::StringPiece buf(buffer_ + begin_, size_);
+  *value = base::StringUtils::ToUint32(buf);
+  begin_ += sizeof(uint32_t);
+  size_ -= sizeof(uint32_t);
   return true;
 }
 

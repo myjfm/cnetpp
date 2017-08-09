@@ -105,6 +105,8 @@ class StringUtils {
                             StringPiece separator,
                             std::vector<std::string>* result);
 
+  static uint32_t ToUint32(StringPiece str);
+
   // check if the charactor is the hexadecimal charactor
   static bool IsHexDigit(char c);
 

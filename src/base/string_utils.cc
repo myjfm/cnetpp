@@ -26,6 +26,7 @@
 //
 #include "string_utils.h"
 
+#include <arpa/inet.h>
 #include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -280,6 +281,11 @@ void StringUtils::SplitByString(StringPiece str,
       pre_pos = cur_pos + separator.length();
     }
   }
+}
+
+uint32_t StringUtils::ToUint32(StringPiece str) {
+  assert(str.size() >= sizeof(uint32_t));
+  return ntohl(*reinterpret_cast<const uint32_t*>(str.data()));
 }
 
 bool StringUtils::IsHexDigit(char c) {
