@@ -218,6 +218,25 @@ bool RingBuffer::ReadUint32(uint32_t* value) {
   return true;
 }
 
+int RingBuffer::ReadVarint32(int32_t* value) {
+  assert(value);
+  if (end_ <= begin_) {
+    Reform();
+  }
+
+  base::StringPiece buf(buffer_ + begin_, size_);
+  int consumed = base::StringUtils::ParseVarint32(buf, value);
+  if (consumed < 0) {
+    return -1;
+  } else if (consumed == 0) {
+    return 0;
+  } else {
+    begin_ += consumed;
+    size_ -= consumed;
+    return 1;
+  }
+}
+
 bool RingBuffer::DoFind(base::StringPiece delimiters, base::StringPiece* data) {
   if (size_ <= 0) {
     return false;

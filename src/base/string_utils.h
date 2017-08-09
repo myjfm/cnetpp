@@ -107,6 +107,8 @@ class StringUtils {
 
   static uint32_t ToUint32(StringPiece str);
 
+  static int ParseVarint32(StringPiece str, int32_t* value);
+
   // check if the charactor is the hexadecimal charactor
   static bool IsHexDigit(char c);
 

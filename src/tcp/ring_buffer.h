@@ -106,6 +106,10 @@ class RingBuffer {
   }
 
   bool ReadUint32(uint32_t* value);
+  // -1 means error
+  // 0 means no enough data
+  // 1 means ok
+  int ReadVarint32(int32_t* value);
 
   bool Find(const std::string& delimiters, base::StringPiece* data) {
     return DoFind(delimiters, data);

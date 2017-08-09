@@ -288,6 +288,65 @@ uint32_t StringUtils::ToUint32(StringPiece str) {
   return ntohl(*reinterpret_cast<const uint32_t*>(str.data()));
 }
 
+int StringUtils::ParseVarint32(StringPiece str, int32_t* value) {
+  assert(value);
+
+  if (str.size() < 1) {
+    return 0;
+  }
+  char tmp = str[0];
+  if (tmp >= 0) {
+    *value = tmp;
+    return 1;
+  }
+
+  if (str.size() < 2) {
+    return 0;
+  }
+  *value = tmp & 0x7f;
+  if ((tmp = str[1]) >= 0) {
+    *value |= tmp << 7;
+    return 2;
+  } else {
+    *value |= (tmp & 0x7f) << 7;
+    if (str.size() < 3) {
+      return 0;
+    }
+    if ((tmp = str[2]) >= 0) {
+      *value |= tmp << 14;
+      return 3;
+    } else {
+      *value |= (tmp & 0x7f) << 14;
+      if (str.size() < 4) {
+        return 0;
+      }
+      if ((tmp = str[3]) >= 0) {
+        *value |= tmp << 21;
+        return 4;
+      } else {
+        *value |= (tmp & 0x7f) << 21;
+        if (str.size() < 5) {
+          return 0;
+        }
+        *value |= (tmp = str[4]) << 28;
+        if (tmp < 0) {
+          for (int i = 0; i < 5; i++) {
+            if (str.size() < i + 6) {
+              return 0;
+            }
+            if (str[i + 5] >= 0) {
+              return i + 6;
+            }
+          }
+          // invalid data, should not happen
+          return -1;
+        }
+        return 5;
+      }
+    }
+  }
+}
+
 bool StringUtils::IsHexDigit(char c) {
   if ((c >= '0' && c <= '9') || 
       (c >= 'a' && c <= 'f') || 
