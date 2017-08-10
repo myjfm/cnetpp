@@ -125,6 +125,7 @@ class TcpConnection : public ConnectionBase {
   }
 
   bool SendPacket(base::StringPiece data);
+  bool SendPacket(std::unique_ptr<RingBuffer>&& data);
 
   // These three methods will be called by the event poller thread when a
   // socket fd becomes readable or writable

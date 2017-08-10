@@ -288,7 +288,7 @@ uint32_t StringUtils::ToUint32(StringPiece str) {
   return ntohl(*reinterpret_cast<const uint32_t*>(str.data()));
 }
 
-int StringUtils::ParseVarint32(StringPiece str, int32_t* value) {
+int StringUtils::ParseVarint32(StringPiece str, uint32_t* value) {
   assert(value);
 
   if (str.size() < 1) {
@@ -345,6 +345,17 @@ int StringUtils::ParseVarint32(StringPiece str, int32_t* value) {
       }
     }
   }
+}
+
+int StringUtils::ToVarint32(uint32_t value, char* buf) {
+  assert(buf);
+  size_t i = 0;
+  while (value > 0x7f) {
+    buf[i++] = 0x80 | (value & 0x7f);
+    value >>= 7;
+  }
+  buf[i++] = value;
+  return i;
 }
 
 bool StringUtils::IsHexDigit(char c) {

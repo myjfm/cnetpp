@@ -218,7 +218,7 @@ bool RingBuffer::ReadUint32(uint32_t* value) {
   return true;
 }
 
-int RingBuffer::ReadVarint32(int32_t* value) {
+int RingBuffer::ReadVarint32(uint32_t* value) {
   assert(value);
   if (end_ <= begin_) {
     Reform();
