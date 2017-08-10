@@ -288,6 +288,13 @@ uint32_t StringUtils::ToUint32(StringPiece str) {
   return ntohl(*reinterpret_cast<const uint32_t*>(str.data()));
 }
 
+char* StringUtils::PutUint32(uint32_t value, char* buf) {
+  assert(buf);
+  value = htonl(value);
+  memcpy(buf, reinterpret_cast<const void*>(&value), sizeof(uint32_t));
+  return buf + sizeof(uint32_t);
+}
+
 int StringUtils::ParseVarint32(StringPiece str, uint32_t* value) {
   assert(value);
 

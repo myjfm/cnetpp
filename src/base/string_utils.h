@@ -106,6 +106,7 @@ class StringUtils {
                             std::vector<std::string>* result);
 
   static uint32_t ToUint32(StringPiece str);
+  static char* PutUint32(uint32_t value, char* buf);
 
   static int ParseVarint32(StringPiece str, uint32_t* value);
   static int ToVarint32(uint32_t value, char* buf);
