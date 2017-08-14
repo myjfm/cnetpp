@@ -43,8 +43,8 @@ class TcpOptions {
       : max_command_queue_len_(1024),
         tcp_send_buffer_size_(32 * 1024),
         tcp_receive_buffer_size_(32 * 1024),
-        send_buffer_size_(-1),
-        receive_buffer_size_(-1) {
+        send_buffer_size_(0),
+        receive_buffer_size_(0) {
   }
   virtual ~TcpOptions() = default;
 

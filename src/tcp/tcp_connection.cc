@@ -61,6 +61,12 @@ bool TcpConnection::SendPacket(base::StringPiece data) {
   return SendPacket();
 }
 
+bool TcpConnection::SendPacket(std::unique_ptr<RingBuffer>&& data) {
+  concurrency::SpinLock::ScopeGuard guard(send_lock_);
+  send_buffers_.emplace_back(std::move(data));
+  return true;
+}
+
 // This method will be called when a socket fd becomes readable
 void TcpConnection::HandleReadableEvent(EventCenter* event_center) {
   bool closed = false;
