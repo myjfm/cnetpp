@@ -110,8 +110,11 @@ void TcpConnection::HandleReadableEvent(EventCenter* event_center) {
         // really received data
         recv_buffer_.CommitWrite(received_length);
         if (received_callback_) {
-          received_callback_(
-              std::static_pointer_cast<TcpConnection>(shared_from_this()));
+          if (!received_callback_(
+              std::static_pointer_cast<TcpConnection>(shared_from_this()))) {
+            closed = true;
+            break;
+          }
         }
       }
     }
