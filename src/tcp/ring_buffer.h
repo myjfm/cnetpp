@@ -100,6 +100,7 @@ class RingBuffer {
   // true means read n bytes of data into 'data' successfully
   // false means there is no enough data
   bool Read(std::string* data, size_t n);
+  bool Read(char* data, size_t n);
 
   void ReadAll(std::string* data) {
     Read(data, size_);

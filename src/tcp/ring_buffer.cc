@@ -181,22 +181,36 @@ bool RingBuffer::Read(std::string* data, size_t n) {
     return false;
   }
 
-  data->reserve(data->size() + n);
+  size_t length = data->length();
+  data->append(n, '\0');
+  return Read(&((*data)[length]), n);
+}
+
+bool RingBuffer::Read(char* data, size_t n) {
+  assert(data);
+  if (n == 0) {
+    return true;
+  }
+
+  if (size_ < n) {
+    return false;
+  }
+
   size_ -= n;
 
   if (end_ <= begin_) {
     // readable data is splited into two slices
     if (n <= capacity_ - begin_) {
-      data->append(buffer_ + begin_, n);
+      memcpy(data, buffer_ + begin_, n);
       begin_ += n;
     } else {
-      data->append(buffer_ + begin_, capacity_ - begin_);
-      data->append(buffer_, n + begin_ - capacity_);
+      memcpy(data, buffer_ + begin_, capacity_ - begin_);
+      memcpy(data + capacity_ - begin_, buffer_, n + begin_ - capacity_);
       begin_ = n + begin_ - capacity_;
     }
   } else {
     // readable data is continuous
-    data->append(buffer_ + begin_, n);
+    memcpy(data, buffer_ + begin_, n);
     begin_ += n;
   }
   return true;
