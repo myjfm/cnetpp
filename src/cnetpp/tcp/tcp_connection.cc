@@ -54,17 +54,15 @@ bool TcpConnection::SendPacket(base::StringPiece data) {
   auto send_buffer = std::make_unique<RingBuffer>(data.size());
   bool r = send_buffer->Write(data);
   assert(r);
-  {
-    concurrency::SpinLock::ScopeGuard guard(send_lock_);
-    send_buffers_.emplace_back(std::move(send_buffer));
-  }
-  return SendPacket();
+  return SendPacket(std::move(send_buffer));
 }
 
 bool TcpConnection::SendPacket(std::unique_ptr<RingBuffer>&& data) {
-  concurrency::SpinLock::ScopeGuard guard(send_lock_);
-  send_buffers_.emplace_back(std::move(data));
-  return true;
+  {
+    concurrency::SpinLock::ScopeGuard guard(send_lock_);
+    send_buffers_.emplace_back(std::move(data));
+  }
+  return SendPacket();
 }
 
 // This method will be called when a socket fd becomes readable
