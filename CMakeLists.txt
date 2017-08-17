@@ -4,7 +4,7 @@ project(cnetpp)
 add_definitions(-DUSE_SELECT)
 #add_definitions(-DUSE_POLL)
 #add_definitions(-DUSE_EVENTFD)
-include_directories("${CMAKE_SOURCE_DIR}/src")
+include_directories("${CMAKE_SOURCE_DIR}/src/cnetpp")
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     add_definitions(-DLINUX_SYSTEM)
@@ -18,14 +18,14 @@ endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -std=c++14")
 
-file(GLOB HTTP_HEADER_FILES "src/http/*.h")
-file(GLOB HTTP_SOURCE_FILES "src/http/*.cc")
-file(GLOB TCP_HEADER_FILES "src/tcp/*.h")
-file(GLOB TCP_SOURCE_FILES "src/tcp/*.cc")
-file(GLOB BASE_HEADER_FILES "src/base/*.h")
-file(GLOB BASE_SOURCE_FILES "src/base/*.cc")
-file(GLOB CONCURRENCY_HEADER_FILES "src/concurrency/*.h")
-file(GLOB CONCURRENCY_SOURCE_FILES "src/concurrency/*.cc")
+file(GLOB HTTP_HEADER_FILES "src/cnetpp/http/*.h")
+file(GLOB HTTP_SOURCE_FILES "src/cnetpp/http/*.cc")
+file(GLOB TCP_HEADER_FILES "src/cnetpp/tcp/*.h")
+file(GLOB TCP_SOURCE_FILES "src/cnetpp/tcp/*.cc")
+file(GLOB BASE_HEADER_FILES "src/cnetpp/base/*.h")
+file(GLOB BASE_SOURCE_FILES "src/cnetpp/base/*.cc")
+file(GLOB CONCURRENCY_HEADER_FILES "src/cnetpp/concurrency/*.h")
+file(GLOB CONCURRENCY_SOURCE_FILES "src/cnetpp/concurrency/*.cc")
 
 set(SOURCE_FILES
     ${BASE_SOURCE_FILES}
