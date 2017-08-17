@@ -68,13 +68,14 @@ bool PollEventPollerImpl::Poll() {
     return false;
   }
 
-  for (int i = 0; i < poll_fds_end_; ++i) {
+  int end = poll_fds_end_;
+  for (int i = 0; i < end; ++i) {
     int fd = poll_fds_[i].fd;
-    // wake up by interrupter
+    // waked up by interrupter
     if (fd == interrupter_->get_read_fd()) {
-      if (!ProcessInterrupt()) {
-        return false;
-      }
+      //if (!ProcessInterrupt()) {
+      //  return false;
+      //}
       continue;
     }
 
@@ -100,11 +101,19 @@ bool PollEventPollerImpl::Poll() {
       return false;
     }
   }
+
+  InternalRemovePollerEvent();
+
   return true;
 }
 
 bool PollEventPollerImpl::AddPollerEvent(Event&& event) {
   if (static_cast<size_t>(poll_fds_end_) >= max_connections_) {
+    // TODO log an error
+    // we are too many connections, just close the new arrival
+    base::TcpSocket socket;
+    socket.Attach(event.fd());
+    socket.Close();
     return false;
   }
   poll_fds_[poll_fds_end_].fd = event.fd();
@@ -135,20 +144,27 @@ bool PollEventPollerImpl::ModifyPollerEvent(Event&& event) {
 }
 
 bool PollEventPollerImpl::RemovePollerEvent(Event&& event) {
-  auto itr = fd_to_index_map_.find(event.fd());
-  assert(itr != fd_to_index_map_.end());
-  auto index = itr->second;
-  assert(poll_fds_[index].fd == event.fd());
-  poll_fds_end_--;
-  fd_to_index_map_.erase(itr);
-  if (index == poll_fds_end_) {
-    return true;
-  }
-  poll_fds_[index].fd = poll_fds_[poll_fds_end_].fd;
-  poll_fds_[index].events = poll_fds_[poll_fds_end_].events;
-  poll_fds_[index].revents = poll_fds_[poll_fds_end_].revents;
-  fd_to_index_map_[poll_fds_[index].fd] = index;
+  events_to_be_removed_.emplace_back(std::move(event));
   return true;
+}
+
+void PollEventPollerImpl::InternalRemovePollerEvent() {
+  for (auto& event : events_to_be_removed_) {
+    auto itr = fd_to_index_map_.find(event.fd());
+    assert(itr != fd_to_index_map_.end());
+    auto index = itr->second;
+    assert(poll_fds_[index].fd == event.fd());
+    poll_fds_end_--;
+    fd_to_index_map_.erase(itr);
+    if (index == poll_fds_end_) {
+      continue;
+    }
+    poll_fds_[index].fd = poll_fds_[poll_fds_end_].fd;
+    poll_fds_[index].events = poll_fds_[poll_fds_end_].events;
+    poll_fds_[index].revents = poll_fds_[poll_fds_end_].revents;
+    fd_to_index_map_[poll_fds_[index].fd] = index;
+  }
+  events_to_be_removed_.clear();
 }
 
 }  // namespace tcp

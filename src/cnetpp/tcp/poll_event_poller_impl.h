@@ -33,6 +33,7 @@
 #include <poll.h>
 #include <vector>
 #include <unordered_map>
+#include <deque>
 
 #include "event.h"
 
@@ -59,9 +60,13 @@ class PollEventPollerImpl : public EventPoller {
   // we use it to accelerate the deletion of a connection
   std::unordered_map<int, int> fd_to_index_map_;
 
+  std::deque<Event> events_to_be_removed_;
+
   bool AddPollerEvent(Event&& event) override;
   bool ModifyPollerEvent(Event&& event) override;
   bool RemovePollerEvent(Event&& event) override;
+
+  void InternalRemovePollerEvent();
 };
 
 }  // namespace tcp

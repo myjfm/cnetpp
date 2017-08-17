@@ -69,9 +69,9 @@ bool EpollEventPollerImpl::Poll() {
     auto fd = epoll_events_[i].data.fd;
     if (fd == interrupter_->get_read_fd()) {
       // we have some command events to be processed
-      if (!ProcessInterrupt()) {
-        return false;
-      }
+      //if (!ProcessInterrupt()) {
+      //  return false;
+      //}
     } else {
       Event event(fd);
       if (epoll_events_[i].events & (EPOLLHUP | EPOLLERR)) {
