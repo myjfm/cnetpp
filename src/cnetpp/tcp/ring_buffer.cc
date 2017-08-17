@@ -30,6 +30,7 @@
 
 #include <assert.h>
 #include <sys/uio.h>
+#include <arpa/inet.h>
 
 #include <string.h>
 #include <string>
@@ -226,7 +227,7 @@ bool RingBuffer::ReadUint32(uint32_t* value) {
   }
 
   base::StringPiece buf(buffer_ + begin_, size_);
-  *value = base::StringUtils::ToUint32(buf);
+  *value = ntohl(base::StringUtils::ToUint32(buf));
   begin_ += sizeof(uint32_t);
   size_ -= sizeof(uint32_t);
   return true;

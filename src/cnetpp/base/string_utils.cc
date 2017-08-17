@@ -285,7 +285,7 @@ void StringUtils::SplitByString(StringPiece str,
 
 uint32_t StringUtils::ToUint32(StringPiece str) {
   assert(str.size() >= sizeof(uint32_t));
-  return ntohl(*reinterpret_cast<const uint32_t*>(str.data()));
+  return *reinterpret_cast<const uint32_t*>(str.data());
 }
 
 char* StringUtils::PutUint32(uint32_t value, char* buf) {
