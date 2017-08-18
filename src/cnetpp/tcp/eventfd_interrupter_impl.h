@@ -24,7 +24,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 //
-#ifdef LINUX_SYSTEM
+#if defined(linux) || defined(__linux) || defined(__linux__)
 
 #ifndef CNETPP_TCP_EVENTFD_INTERRUPTER_IMPL_H_
 #define CNETPP_TCP_EVENTFD_INTERRUPTER_IMPL_H_
@@ -59,4 +59,5 @@ class EventfdInterrupterImpl : public Interrupter {
 }  // namespace cnetpp
 
 #endif  // CNETPP_TCP_EVENTFD_INTERRUPTER_IMPL_H_
-#endif  // LINUX_SYSTEM
+#endif  // defined(linux) || defined(__linux) || defined(__linux__)
+

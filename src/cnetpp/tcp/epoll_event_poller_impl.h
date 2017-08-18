@@ -24,7 +24,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 //
-#ifdef LINUX_SYSTEM
+#if defined(linux) || defined(__linux) || defined(__linux__)
 #ifndef CNETPP_TCP_EPOLL_EVENT_POLLER_IMPL_H_
 #define CNETPP_TCP_EPOLL_EVENT_POLLER_IMPL_H_
 
@@ -74,4 +74,5 @@ class EpollEventPollerImpl : public EventPoller {
 }  // namespace cnetpp
 
 #endif  // CNETPP_TCP_EPOLL_EVENT_POLLER_IMPL_H_
-#endif  // LINUX_SYSTEM
+#endif  // define(linux) || defined(__linux) || defined(__linux__)
+

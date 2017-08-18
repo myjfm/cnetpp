@@ -1,10 +1,11 @@
 #include <cnetpp/base/end_point.h>
 #include <cnetpp/base/ip_address.h>
+#include <cnetpp/base/string_utils.h>
+#include <cnetpp/base/log.h>
 #include <cnetpp/http/http_connection.h>
 #include <cnetpp/http/http_request.h>
 #include <cnetpp/http/http_response.h>
 #include <cnetpp/http/http_server.h>
-#include <cnetpp/base/string_utils.h>
 
 #include <unistd.h>
 
@@ -17,7 +18,7 @@ class HttpServerHandler final {
   ~HttpServerHandler() = default;
 
   bool OnConnected(std::shared_ptr<cnetpp::http::HttpConnection> c) {
-    std::cout << "A new connection arrived!" << std::endl;
+    INFO("A new connection arrived");
     assert(c.get());
     (void) c;
     return true;
@@ -30,9 +31,8 @@ class HttpServerHandler final {
     if (!http_request) {
       return false;
     }
-    std::cout << "uri: " << http_request->uri() << std::endl;
-    std::cout << "method: "
-              << static_cast<int>(http_request->method()) << std::endl;
+    INFO("uri: %s", http_request->uri().c_str());
+    INFO("method: %d", static_cast<int>(http_request->method()));
     std::shared_ptr<cnetpp::http::HttpResponse> http_response(
         new cnetpp::http::HttpResponse);
     http_response->set_status(
@@ -49,12 +49,13 @@ class HttpServerHandler final {
   bool OnClosed(std::shared_ptr<cnetpp::http::HttpConnection> c) {
     assert(c.get());
     (void) c;
-    std::cout << "Connection closed!" << std::endl;
+    INFO("Connection closed");
     return true;
   }
 
   bool OnSent(bool success, std::shared_ptr<cnetpp::http::HttpConnection> c) {
     (void) c;
+    INFO("Message has been sent");
     return success;
   }
 };
@@ -89,7 +90,7 @@ int main() {
 
   cnetpp::http::HttpServer http_server;
   if (!http_server.Launch(listen_end_point, options, 1)) {
-    std::cout << "Launch failed!" << std::endl;
+    FATAL("Failed to launch http server, exiting...");
   }
 
   ::sleep(1000);

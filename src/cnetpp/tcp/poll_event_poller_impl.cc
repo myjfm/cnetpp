@@ -24,7 +24,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 //
-#if defined(LINUX_SYSTEM) || defined(DARWIN_SYSTEM) || defined(UNIX_SYSTEM)
+#if defined(linux) || defined(__linux) || defined(__linux__) || \
+  defined(macintosh) || defined(__APPLE__) || defined(__APPLE_CC__)
 
 #include <cnetpp/tcp/poll_event_poller_impl.h>
 #include <cnetpp/tcp/event_center.h>
@@ -169,4 +170,4 @@ void PollEventPollerImpl::InternalRemovePollerEvent() {
 }  // namespace tcp
 }  // namespace cnetpp
 
-#endif  // LINUX_SYSTEM OR DARWIN_SYSTEM OR UNIX_SYSTEM
+#endif  // system related macros check

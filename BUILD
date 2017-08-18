@@ -13,3 +13,33 @@ cc_library(
     ],
     extra_cppflags=["-Wextra -Wno-unused-local-typedefs -std=c++14"]
 )
+
+cc_binary(
+    name="cnetpp_server_test",
+    srcs=[
+        "examples/server.cc",
+    ],
+    incs=[
+        "src"
+    ],
+    deps=[
+        "#pthread",
+        ":cnetpp",
+    ],
+    extra_cppflags=["-Wextra -Wno-unused-local-typedefs -std=c++14"]
+)
+
+cc_binary(
+    name="cnetpp_client_test",
+    srcs=[
+        "examples/client.cc",
+    ],
+    incs=[
+        "src",
+    ],
+    deps=[
+        "#pthread",
+        ":cnetpp",
+    ],
+    extra_cppflags=["-Wextra -Wno-unused-local-typedefs -std=c++14"]
+)

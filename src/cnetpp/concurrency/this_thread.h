@@ -30,8 +30,10 @@
 #include <errno.h>
 #include <pthread.h>
 #include <string.h>
-#if defined(LINUX_SYSTEM)
+#if defined(linux) || defined(__linux) || defined(__linux__)
 #include <syscall.h>
+#elif defined(macintosh) || defined(__APPLE__) || defined(__APPLE_CC__)
+#include <sys/syscall.h>
 #endif
 #include <unistd.h>
 
@@ -42,45 +44,62 @@ namespace concurrency {
 
 class ThisThread {
  public:
-   static void Yield() {
-     std::this_thread::yield();
-   }
+  static void Yield() {
+    std::this_thread::yield();
+  }
 
-#if defined(LINUX_SYSTEM)
-   // this method can get the thread id with int type
-   static int GetId() {
-     static thread_local pid_t tid = 0;
-     if (tid == 0) {
-       syscall(SYS_gettid);
-     }
-     return tid;
-   }
+  // this method can get the thread id with int type
+  static int GetId() {
+    static thread_local pid_t tid = 0;
+    if (tid == 0) {
+#if defined(linux) || defined(__linux) || defined(__linux__) || \
+      defined(macintosh) || defined(__APPLE__) || defined(__APPLE_CC__)
+  #ifndef __NR_gettid
+    #if defined(macintosh) || defined(__APPLE__) || defined(__APPLE_CC__)
+      #define __NR_gettid SYS_gettid
+    #else
+      #define __NR_gettid 224
+    #endif
+  #endif
+      tid = syscall(__NR_gettid);
 #endif
+      if (tid <= 0) {
+#if defined(linux) || defined(__linux) || defined(__linux__)
+        tid = getpid();
+#elif defined(WIN32) || defined(_WIN32) || defined(__WIN32__)
+        tid = GetCurrentThreadId();
+#else
+        tid = (pid_t)(uintptr_t)pthread_self();
+#endif
+      }
+    }
+    return tid;
+  }
 
-   // we don't use std::chrono just for convenience
-   static void Sleep(int64_t time_in_milliseconds) {
-     ::usleep(time_in_milliseconds);
-   }
+  // we don't use std::chrono just for convenience
+  static void Sleep(int64_t time_in_milliseconds) {
+    ::usleep(time_in_milliseconds);
+  }
 
-   static void Exit() {
-     ::pthread_exit(nullptr); // std::this_thread doesn't support it, use pthread
-   }
+  static void Exit() {
+    ::pthread_exit(nullptr); // std::this_thread doesn't support it, use pthread
+  }
 
-   static int GetLastError() {
-     return errno; // thraed local variable
-   }
+  static int GetLastError() {
+    return errno; // thraed local variable
+  }
 
-   static void SetLastError(int err) {
-     errno = err;
-   }
+  static void SetLastError(int err) {
+    errno = err;
+  }
 
-   static std::string GetLastErrorString() {
-     return strerror(errno);
-   }
+  static std::string GetLastErrorString() {
+    return strerror(errno);
+  }
 
-   static std::string GetErrorString(int err) {
-     return strerror(err);
-   }
+  static std::string GetErrorString(int err) {
+    return strerror(err);
+  }
 };
 
 }  // namespace concurrency

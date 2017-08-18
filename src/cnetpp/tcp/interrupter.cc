@@ -25,7 +25,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //
 #include <cnetpp/tcp/interrupter.h>
-#if defined(LINUX_SYSTEM)
+#if defined(linux) || defined(__linux) || defined(__linux__)
 #include <cnetpp/tcp/eventfd_interrupter_impl.h>
 #else
 #include <cnetpp/tcp/pipe_interrupter_impl.h>
@@ -35,7 +35,7 @@ namespace cnetpp {
 namespace tcp {
 
 std::unique_ptr<Interrupter> Interrupter::New() {
-#if defined(LINUX_SYSTEM)
+#if defined(linux) || defined(__linux) || defined(__linux__)
   return std::unique_ptr<Interrupter>(new EventfdInterrupterImpl());
 #else
   return std::unique_ptr<Interrupter>(new PipeInterrupterImpl());

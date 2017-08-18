@@ -28,9 +28,9 @@
 #include <cnetpp/tcp/event_center.h>
 #include <cnetpp/tcp/interrupter.h>
 
-#if defined(LINUX_SYSTEM)
+#if defined(linux) || defined(__linux) || defined(__linux__)
 #include <cnetpp/tcp/epoll_event_poller_impl.h>
-#elif defined(DARWIN_SYSTEM) || defined(UNIX_SYSTEM)
+#elif defined(macintosh) || defined(__APPLE__) || defined(__APPLE_CC__)
 #include <cnetpp/tcp/poll_event_poller_impl.h>
 #else
 #include <cnetpp/tcp/select_event_poller_impl.h>
@@ -41,10 +41,10 @@ namespace tcp {
 
 std::shared_ptr<EventPoller> EventPoller::New(size_t id,
                                               size_t max_connections) {
-#if defined(LINUX_SYSTEM)
+#if defined(linux) || defined(__linux) || defined(__linux__)
   return std::shared_ptr<EventPoller>(
       new EpollEventPollerImpl(id, max_connections));
-#elif defined(DARWIN_SYSTEM) || defined(UNIX_SYSTEM)
+#elif defined(macintosh) || defined(__APPLE__) || defined(__APPLE_CC__)
   return std::shared_ptr<EventPoller>(
       new PollEventPollerImpl(id, max_connections));
 #else

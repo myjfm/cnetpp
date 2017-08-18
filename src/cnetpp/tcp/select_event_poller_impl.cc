@@ -24,7 +24,6 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 //
-#if !defined(DARWIN_SYSTEM)
 #include <cnetpp/tcp/select_event_poller_impl.h>
 #include <cnetpp/tcp/event.h>
 #include <cnetpp/tcp/event_center.h>
@@ -148,6 +147,4 @@ int SelectEventPollerImpl::BuildFdsets(fd_set* rd_fdset, fd_set* wr_fdset,
 }
 }  // namespace tcp
 }  // namespace cnetpp
-
-#endif  // !DARWIN_SYSTEM
 

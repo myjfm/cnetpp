@@ -4,6 +4,7 @@
 #include <cnetpp/http/http_response.h>
 #include <cnetpp/base/end_point.h>
 #include <cnetpp/base/ip_address.h>
+#include <cnetpp/base/log.h>
 
 #include <unistd.h>
 
@@ -41,12 +42,12 @@ int main(int argc, const char **argv) {
   };
 
   http_options.set_connected_callback([&send_func] (HttpConnectionPtr c) -> bool {
-      std::cout << "Connected to the server" << std::endl;
+      INFO("Connected to the server");
       return send_func(c);
   });
 
   http_options.set_closed_callback([] (HttpConnectionPtr c) -> bool {
-      std::cout << "Connection closed" << std::endl;
+      INFO("Connection closed");
       (void) c;
       return true;
   });
@@ -57,15 +58,13 @@ int main(int argc, const char **argv) {
         std::static_pointer_cast<cnetpp::http::HttpResponse>(c->http_packet());
       std::string headers;
       http_response->HttpHeadersToString(&headers);
-      std::cout << "headers:" << std::endl;
-      std::cout << headers << std::endl;
+      INFO("headers: %s", headers.c_str());
       if (http_response->http_body().length() > 0) {
-        std::cout << "body:" << std::endl;
-        std::cout << http_response->http_body() << std::endl;
+        INFO("body: %s", http_response->http_body().c_str());
       }
       if (counts[c->id()]++ == 10) {
         c->MarkAsClosed();
-        std::cout << "MarkAsClosed()" << std::endl;
+        INFO("MarkAsClosed");
         return true;
       } else {
         return send_func(c);
@@ -74,20 +73,20 @@ int main(int argc, const char **argv) {
 
   http_options.set_sent_callback([] (bool success, HttpConnectionPtr c) -> bool {
     (void) c;
-    std::cout << "send packet successfully" << std::endl;
+    INFO("Send packet successfully");
     return success;
   });
 
   cnetpp::http::HttpClient http_client;
   if (!http_client.Launch(1)) {
-    std::cout << "failed to launch the http_client" << std::endl;
+    FATAL("Failed to launch http client, exiting...");
     return 1;
   }
 
   for (auto i = 0; i < 8; ++i) {
     auto connection_id = http_client.Connect(argv[1], http_options);
     if (connection_id == cnetpp::tcp::kInvalidConnectionId) {
-      std::cout << "failed to connect to the server" << std::endl;
+      INFO("Failed to connect to server");
       return 1;
     }
   }

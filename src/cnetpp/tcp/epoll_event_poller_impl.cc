@@ -24,7 +24,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 //
-#ifdef LINUX_SYSTEM
+#if defined(linux) || defined(__linux) || defined(__linux__)
 #include <cnetpp/tcp/epoll_event_poller_impl.h>
 #include <cnetpp/tcp/event.h>
 #include <cnetpp/tcp/event_center.h>
@@ -94,7 +94,7 @@ bool EpollEventPollerImpl::Poll() {
 }
 
 bool EpollEventPollerImpl::AddPollerEvent(Event&& ev) {
-  struct epoll_event epoll_ev {};
+  struct epoll_event epoll_ev {0u, 0};
   epoll_ev.data.fd = ev.fd();
   epoll_ev.events = EPOLLIN;
   if (ev.mask() & static_cast<int>(Event::Type::kWrite)) {
@@ -104,7 +104,7 @@ bool EpollEventPollerImpl::AddPollerEvent(Event&& ev) {
 }
 
 bool EpollEventPollerImpl::ModifyPollerEvent(Event&& ev) {
-  struct epoll_event epoll_ev {};
+  struct epoll_event epoll_ev {0u, 0};
   epoll_ev.data.fd = ev.fd();
   epoll_ev.events = EPOLLIN;
   if (ev.mask() & static_cast<int>(Event::Type::kWrite)) {
@@ -123,5 +123,5 @@ bool EpollEventPollerImpl::RemovePollerEvent(Event&& ev) {
 }  // namespace tcp
 }  // namespace cnetpp
 
-#endif  // LINUX_SYSTEM
+#endif  // defined(linux) || defined(__linux) || defined(__linux__)
 
