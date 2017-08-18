@@ -27,13 +27,13 @@
 #ifndef CNETPP_BASE_IP_ADDRESS_H_
 #define CNETPP_BASE_IP_ADDRESS_H_
 
+#include <cnetpp/base/string_piece.h>
+
 #include <stdint.h>
 
 #include <cstdlib>
 #include <limits>
 #include <vector>
-
-#include "string_piece.h"
 
 namespace cnetpp {
 namespace base {

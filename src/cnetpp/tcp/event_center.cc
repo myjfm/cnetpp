@@ -24,13 +24,12 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 //
-#include "event_center.h"
+#include <cnetpp/tcp/event_center.h>
+#include <cnetpp/tcp/event_poller.h>
+#include <cnetpp/concurrency/thread_manager.h>
+#include <cnetpp/concurrency/task.h>
 
 #include <thread>
-
-#include "event_poller.h"
-#include "../concurrency/thread_manager.h"
-#include "../concurrency/task.h"
 
 namespace cnetpp {
 namespace tcp {

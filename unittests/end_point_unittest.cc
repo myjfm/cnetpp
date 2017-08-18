@@ -1,6 +1,9 @@
-#include <gtest/gtest.h>
-#include <base/end_point.h>
+#include <cnetpp/base/end_point.h>
+
 #include <netinet/in.h>
+
+#include <gtest/gtest.h>
+
 TEST(EndPoint, SockAddrTest) {
   sockaddr addr;
   socklen_t addr_len = sizeof(addr);

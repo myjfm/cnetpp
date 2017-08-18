@@ -28,14 +28,13 @@
 #ifndef CNETPP_TCP_POLL_EVENT_POLLER_IMPL_H_
 #define CNETPP_TCP_POLL_EVENT_POLLER_IMPL_H_
 
-#include "event_poller.h"
+#include <cnetpp/tcp/event_poller.h>
+#include <cnetpp/tcp/event.h>
 
 #include <poll.h>
 #include <vector>
 #include <unordered_map>
 #include <deque>
-
-#include "event.h"
 
 namespace cnetpp {
 namespace tcp {

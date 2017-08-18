@@ -27,7 +27,7 @@
 #ifndef CNETPP_CONCURRENCY_QUEUE_BASE_H_
 #define CNETPP_CONCURRENCY_QUEUE_BASE_H_
 
-#include "task.h"
+#include <cnetpp/concurrency/task.h>
 
 #include <memory>
 #include <queue>

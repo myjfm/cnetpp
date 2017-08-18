@@ -24,16 +24,16 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 //
-#include "event_poller.h"
-#include "event_center.h"
-#include "interrupter.h"
+#include <cnetpp/tcp/event_poller.h>
+#include <cnetpp/tcp/event_center.h>
+#include <cnetpp/tcp/interrupter.h>
 
 #if defined(LINUX_SYSTEM)
-#include "epoll_event_poller_impl.h"
+#include <cnetpp/tcp/epoll_event_poller_impl.h>
 #elif defined(DARWIN_SYSTEM) || defined(UNIX_SYSTEM)
-#include "poll_event_poller_impl.h"
+#include <cnetpp/tcp/poll_event_poller_impl.h>
 #else
-#include "select_event_poller_impl.h"
+#include <cnetpp/tcp/select_event_poller_impl.h>
 #endif
 
 namespace cnetpp {

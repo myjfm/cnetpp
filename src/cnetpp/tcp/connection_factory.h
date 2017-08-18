@@ -27,9 +27,9 @@
 #ifndef CNETPP_TCP_CONNECTION_FACTORY_H_
 #define CNETPP_TCP_CONNECTION_FACTORY_H_
 
-#include "connection_base.h"
-#include "listen_connection.h"
-#include "tcp_connection.h"
+#include <cnetpp/tcp/connection_base.h>
+#include <cnetpp/tcp/listen_connection.h>
+#include <cnetpp/tcp/tcp_connection.h>
 
 namespace cnetpp {
 namespace tcp {

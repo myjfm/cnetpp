@@ -24,17 +24,16 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 //
-#include "tcp_server.h"
+#include <cnetpp/tcp/tcp_server.h>
+#include <cnetpp/tcp/connection_factory.h>
+#include <cnetpp/tcp/listen_connection.h>
+#include <cnetpp/base/socket.h>
 
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/tcp.h>
 #include <netinet/in.h>
-
-#include "connection_factory.h"
-#include "listen_connection.h"
-#include "../base/socket.h"
 
 namespace cnetpp {
 namespace tcp {

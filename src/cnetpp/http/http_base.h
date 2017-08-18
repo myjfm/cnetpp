@@ -27,14 +27,14 @@
 #ifndef CNETPP_HTTP_HTTP_BASE_H_
 #define CNETPP_HTTP_HTTP_BASE_H_
 
+#include <cnetpp/http/http_connection.h>
+#include <cnetpp/http/http_options.h>
+#include <cnetpp/tcp/tcp_connection.h>
+#include <cnetpp/tcp/tcp_options.h>
+
 #include <memory>
 #include <mutex>
 #include <unordered_map>
-
-#include "http_connection.h"
-#include "http_options.h"
-#include "../tcp/tcp_connection.h"
-#include "../tcp/tcp_options.h"
 
 namespace cnetpp {
 namespace http {

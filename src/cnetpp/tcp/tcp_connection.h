@@ -27,17 +27,16 @@
 #ifndef CNETPP_TCP_CONNECTION_H_
 #define CNETPP_TCP_CONNECTION_H_
 
-#include "connection_base.h"
+#include <cnetpp/tcp/connection_base.h>
+#include <cnetpp/tcp/ring_buffer.h>
+#include <cnetpp/tcp/tcp_callbacks.h>
+#include <cnetpp/base/string_piece.h>
+#include <cnetpp/concurrency/spin_lock.h>
 
 #include <atomic>
 #include <memory>
 #include <string>
 #include <list>
-
-#include "ring_buffer.h"
-#include "tcp_callbacks.h"
-#include "../base/string_piece.h"
-#include "../concurrency/spin_lock.h"
 
 namespace cnetpp {
 namespace tcp {

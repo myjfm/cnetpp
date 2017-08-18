@@ -27,11 +27,10 @@
 #ifndef CNETPP_HTTP_HTTP_SERVER_H_
 #define CNETPP_HTTP_HTTP_SERVER_H_
 
-#include "http_base.h"
-
-#include "http_options.h"
-#include "../base/end_point.h"
-#include "../tcp/tcp_server.h"
+#include <cnetpp/http/http_base.h>
+#include <cnetpp/http/http_options.h>
+#include <cnetpp/base/end_point.h>
+#include <cnetpp/tcp/tcp_server.h>
 
 namespace cnetpp {
 namespace http {

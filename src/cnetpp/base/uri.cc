@@ -24,13 +24,12 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 //
-#include "uri.h"
+#include <cnetpp/base/uri.h>
+#include <cnetpp/base/string_utils.h>
 
 #include <cstdlib>
 #include <string>
 #include <unordered_map>
-
-#include "string_utils.h"
 
 namespace cnetpp {
 namespace base {

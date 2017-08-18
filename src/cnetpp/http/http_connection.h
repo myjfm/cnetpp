@@ -27,13 +27,13 @@
 #ifndef CNETPP_HTTP_HTTP_CONNECTION_H_
 #define CNETPP_HTTP_HTTP_CONNECTION_H_
 
+#include <cnetpp/http/http_callbacks.h>
+#include <cnetpp/http/http_packet.h>
+#include <cnetpp/tcp/tcp_connection.h>
+
 #include <assert.h>
 
 #include <memory>
-
-#include "http_callbacks.h"
-#include "http_packet.h"
-#include "../tcp/tcp_connection.h"
 
 namespace cnetpp {
 namespace http {

@@ -27,13 +27,13 @@
 #ifndef CNETPP_TCP_RING_BUFFER_H_
 #define CNETPP_TCP_RING_BUFFER_H_
 
-#include <sys/uio.h>
+#include <cnetpp/base/string_piece.h>
 
+#include <sys/uio.h>
 #include <string.h>
+
 #include <string>
 #include <vector>
-
-#include "../base/string_piece.h"
 
 namespace cnetpp {
 namespace tcp {

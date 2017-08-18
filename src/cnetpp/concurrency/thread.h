@@ -27,8 +27,8 @@
 #ifndef CNETPP_CONCURRENCY_THREAD_H_
 #define CNETPP_CONCURRENCY_THREAD_H_
 
-#include "task.h"
-#include "spin_lock.h"
+#include <cnetpp/concurrency/task.h>
+#include <cnetpp/concurrency/spin_lock.h>
 
 #include <memory>
 #include <thread>

@@ -4,7 +4,7 @@ project(cnetpp)
 add_definitions(-DUSE_SELECT)
 #add_definitions(-DUSE_POLL)
 #add_definitions(-DUSE_EVENTFD)
-include_directories("${CMAKE_SOURCE_DIR}/src/cnetpp")
+include_directories("${CMAKE_SOURCE_DIR}/src")
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     add_definitions(-DLINUX_SYSTEM)

@@ -27,10 +27,10 @@
 #ifndef CNETPP_TCP_COMMAND_H_
 #define CNETPP_TCP_COMMAND_H_
 
+#include <cnetpp/tcp/connection_base.h>
+
 #include <functional>
 #include <memory>
-
-#include "connection_base.h"
 
 namespace cnetpp {
 namespace tcp {

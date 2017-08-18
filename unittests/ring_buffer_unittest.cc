@@ -1,10 +1,10 @@
+#include <cnetpp/tcp/ring_buffer.h>
+
 #include <sys/uio.h>
 
 #include <string>
 
 #include <gtest/gtest.h>
-
-#include <tcp/ring_buffer.h>
 
 TEST(RingBuffer, GetWritePositionsAndCommitWrite) {
   cnetpp::tcp::RingBuffer rb(10);

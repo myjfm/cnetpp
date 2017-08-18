@@ -27,7 +27,7 @@
 #ifndef CNETPP_HTTP_HTTP_OPTIONS_H_
 #define CNETPP_HTTP_HTTP_OPTIONS_H_
 
-#include "http_callbacks.h"
+#include <cnetpp/http/http_callbacks.h>
 
 namespace cnetpp {
 namespace http {

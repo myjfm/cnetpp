@@ -27,13 +27,13 @@
 #ifndef CNETPP_TCP_TCP_SERVER_H_
 #define CNETPP_TCP_TCP_SERVER_H_
 
+#include <cnetpp/tcp/event_center.h>
+#include <cnetpp/tcp/tcp_callbacks.h>
+#include <cnetpp/tcp/tcp_options.h>
+#include <cnetpp/base/end_point.h>
+
 #include <memory>
 #include <functional>
-
-#include "event_center.h"
-#include "tcp_callbacks.h"
-#include "tcp_options.h"
-#include "../base/end_point.h"
 
 namespace cnetpp {
 namespace tcp {

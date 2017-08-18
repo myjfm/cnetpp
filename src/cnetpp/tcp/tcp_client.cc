@@ -24,7 +24,10 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 //
-#include "tcp_client.h"
+#include <cnetpp/tcp/tcp_client.h>
+#include <cnetpp/tcp/connection_factory.h>
+#include <cnetpp/base/end_point.h>
+#include <cnetpp/base/socket.h>
 
 #include <fcntl.h>
 #include <sys/types.h>
@@ -33,10 +36,6 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <arpa/inet.h>
-
-#include "connection_factory.h"
-#include "../base/end_point.h"
-#include "../base/socket.h"
 
 namespace cnetpp {
 namespace tcp {

@@ -29,13 +29,12 @@
 //
 // Author: wilsonh@google.com (Wilson Hsieh)
 //
-#include "string_piece.h"
+#include <cnetpp/base/string_piece.h>
+#include <cnetpp/base/string_utils.h>
 
 #include <limits.h>
 
 #include <algorithm>
-
-#include "string_utils.h"
 
 namespace cnetpp {
 namespace base {

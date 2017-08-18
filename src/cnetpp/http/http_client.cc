@@ -24,12 +24,11 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 //
-#include "http_client.h"
+#include <cnetpp/http/http_client.h>
+#include <cnetpp/http/http_connection.h>
+#include <cnetpp/http/http_response.h>
 
 #include <netdb.h>
-
-#include "http_connection.h"
-#include "http_response.h"
 
 namespace cnetpp {
 namespace http {

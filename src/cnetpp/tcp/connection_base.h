@@ -27,15 +27,15 @@
 #ifndef CNETPP_CONNECTION_BASE_H_
 #define CNETPP_CONNECTION_BASE_H_
 
+#include <cnetpp/tcp/connection_id.h>
+#include <cnetpp/tcp/ring_buffer.h>
+#include <cnetpp/tcp/tcp_callbacks.h>
+#include <cnetpp/base/socket.h>
+#include <cnetpp/base/string_piece.h>
+
 #include <functional>
 #include <memory>
 #include <string>
-
-#include "connection_id.h"
-#include "ring_buffer.h"
-#include "tcp_callbacks.h"
-#include "../base/socket.h"
-#include "../base/string_piece.h"
 
 namespace cnetpp {
 namespace tcp {

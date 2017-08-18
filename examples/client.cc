@@ -1,13 +1,13 @@
+#include <cnetpp/http/http_callbacks.h>
+#include <cnetpp/http/http_client.h>
+#include <cnetpp/http/http_request.h>
+#include <cnetpp/http/http_response.h>
+#include <cnetpp/base/end_point.h>
+#include <cnetpp/base/ip_address.h>
+
 #include <unistd.h>
 
 #include <iostream>
-
-#include "http/http_callbacks.h"
-#include "http/http_client.h"
-#include "http/http_request.h"
-#include "http/http_response.h"
-#include "base/end_point.h"
-#include "base/ip_address.h"
 
 int main(int argc, const char **argv) {
   if(argc != 2) {

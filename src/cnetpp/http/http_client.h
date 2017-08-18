@@ -27,14 +27,13 @@
 #ifndef CNETPP_HTTP_HTTP_CLIENT_H_
 #define CNETPP_HTTP_HTTP_CLIENT_H_
 
-#include "http_base.h"
+#include <cnetpp/http/http_base.h>
+#include <cnetpp/http/http_connection.h>
+#include <cnetpp/tcp/tcp_client.h>
+#include <cnetpp/base/end_point.h>
+#include <cnetpp/base/uri.h>
 
 #include <functional>
-
-#include "http_connection.h"
-#include "../base/end_point.h"
-#include "../base/uri.h"
-#include "../tcp/tcp_client.h"
 
 namespace cnetpp {
 namespace http {

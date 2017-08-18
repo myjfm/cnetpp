@@ -24,10 +24,9 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 //
-#include "http_base.h"
-
-#include "http_connection.h"
-#include "../base/string_piece.h"
+#include <cnetpp/http/http_base.h>
+#include <cnetpp/http/http_connection.h>
+#include <cnetpp/base/string_piece.h>
 
 namespace cnetpp {
 namespace http {

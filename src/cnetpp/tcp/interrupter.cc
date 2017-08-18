@@ -24,11 +24,11 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 //
-#include "interrupter.h"
+#include <cnetpp/tcp/interrupter.h>
 #if defined(LINUX_SYSTEM)
-#include "eventfd_interrupter_impl.h"
+#include <cnetpp/tcp/eventfd_interrupter_impl.h>
 #else
-#include "pipe_interrupter_impl.h"
+#include <cnetpp/tcp/pipe_interrupter_impl.h>
 #endif
 
 namespace cnetpp {

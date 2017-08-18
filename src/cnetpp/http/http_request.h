@@ -27,7 +27,7 @@
 #ifndef CNETPP_HTTP_HTTP_REQUEST_H_
 #define CNETPP_HTTP_HTTP_REQUEST_H_
 
-#include "http_packet.h"
+#include <cnetpp/http/http_packet.h>
 
 #include <algorithm>
 #include <string>

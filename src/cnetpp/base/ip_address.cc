@@ -24,14 +24,13 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 //
-#include "ip_address.h"
+#include <cnetpp/base/ip_address.h>
+#include <cnetpp/base/string_utils.h>
 
 #include <sys/socket.h>
 
 #include <cstdlib>
 #include <string>
-
-#include "string_utils.h"
 
 namespace cnetpp {
 namespace base {

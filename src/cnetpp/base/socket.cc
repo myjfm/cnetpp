@@ -24,7 +24,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 //
-#include "socket.h"
+#include <cnetpp/base/socket.h>
+
 #include <sys/uio.h>
 
 namespace cnetpp {

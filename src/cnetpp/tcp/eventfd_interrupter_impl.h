@@ -29,7 +29,7 @@
 #ifndef CNETPP_TCP_EVENTFD_INTERRUPTER_IMPL_H_
 #define CNETPP_TCP_EVENTFD_INTERRUPTER_IMPL_H_
 
-#include "interrupter.h"
+#include <cnetpp/tcp/interrupter.h>
 
 namespace cnetpp {
 namespace tcp {

@@ -27,15 +27,15 @@
 #ifndef CNETPP_TCP_EVENT_CENTER_H_
 #define CNETPP_TCP_EVENT_CENTER_H_
 
+#include <cnetpp/tcp/command.h>
+#include <cnetpp/tcp/connection_base.h>
+#include <cnetpp/tcp/event.h>
+#include <cnetpp/concurrency/thread.h>
+
 #include <memory>
 #include <vector>
 #include <unordered_map>
 #include <mutex>
-
-#include "command.h"
-#include "connection_base.h"
-#include "event.h"
-#include "../concurrency/thread.h"
 
 namespace cnetpp {
 namespace tcp {

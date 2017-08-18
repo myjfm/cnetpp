@@ -27,6 +27,9 @@
 #ifndef CNETPP_BASE_SOCKET_H_
 #define CNETPP_BASE_SOCKET_H_
 
+#include <cnetpp/base/end_point.h>
+#include <cnetpp/concurrency/this_thread.h>
+
 #include <arpa/inet.h>
 #include <assert.h>
 #include <fcntl.h>
@@ -47,9 +50,6 @@
 #include <stdexcept>
 #include <string>
 #include <utility>
-
-#include "end_point.h"
-#include "../concurrency/this_thread.h"
 
 namespace cnetpp {
 namespace base {

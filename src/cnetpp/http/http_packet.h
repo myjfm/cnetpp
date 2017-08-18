@@ -27,11 +27,11 @@
 #ifndef CNETPP_HTTP_HTTP_PACKET_H_
 #define CNETPP_HTTP_HTTP_PACKET_H_
 
+#include <cnetpp/base/string_piece.h>
+
 #include <map>
 #include <string>
 #include <vector>
-
-#include "../base/string_piece.h"
 
 namespace cnetpp {
 namespace http {

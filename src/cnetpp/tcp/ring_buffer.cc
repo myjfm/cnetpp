@@ -24,15 +24,14 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 //
-#include "ring_buffer.h"
-
-#include "base/string_utils.h"
+#include <cnetpp/tcp/ring_buffer.h>
+#include <cnetpp/base/string_utils.h>
 
 #include <assert.h>
 #include <sys/uio.h>
 #include <arpa/inet.h>
-
 #include <string.h>
+
 #include <string>
 #include <vector>
 

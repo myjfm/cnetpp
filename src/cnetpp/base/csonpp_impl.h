@@ -29,7 +29,7 @@
 #ifndef CNETPP_BASE_CSONPP_IMPL_H_
 #define CNETPP_BASE_CSONPP_IMPL_H_
 
-#include "csonpp.h"
+#include <cnetpp/base/csonpp.h>
 
 #include <cstdio>
 #include <cstring>

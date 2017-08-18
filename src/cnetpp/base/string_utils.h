@@ -27,6 +27,8 @@
 #ifndef CNETPP_BASE_STRING_UTILS_H_
 #define CNETPP_BASE_STRING_UTILS_H_
 
+#include <cnetpp/base/string_piece.h>
+
 #include <assert.h>
 #include <stdint.h>
 #include <string.h>
@@ -35,8 +37,6 @@
 #include <vector>
 #include <sstream>
 #include <limits>
-
-#include "string_piece.h"
 
 namespace cnetpp {
 namespace base {

@@ -25,15 +25,14 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //
 #ifdef LINUX_SYSTEM
-#include "epoll_event_poller_impl.h"
+#include <cnetpp/tcp/epoll_event_poller_impl.h>
+#include <cnetpp/tcp/event.h>
+#include <cnetpp/tcp/event_center.h>
+#include <cnetpp/concurrency/this_thread.h>
 
 #include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
-
-#include "event.h"
-#include "event_center.h"
-#include "../concurrency/this_thread.h"
 
 namespace cnetpp {
 namespace tcp {

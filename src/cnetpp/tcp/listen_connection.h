@@ -27,11 +27,10 @@
 #ifndef CNETPP_LISTEN_CONNECTION_H_
 #define CNETPP_LISTEN_CONNECTION_H_
 
-#include "connection_base.h"
+#include <cnetpp/tcp/connection_base.h>
+#include <cnetpp/tcp/tcp_options.h>
 
 #include <memory>
-
-#include "tcp_options.h"
 
 namespace cnetpp {
 namespace tcp {

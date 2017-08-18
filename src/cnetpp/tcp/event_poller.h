@@ -27,10 +27,10 @@
 #ifndef CNETPP_TCP_EVENT_POLLER_H_
 #define CNETPP_TCP_EVENT_POLLER_H_
 
-#include <memory>
+#include <cnetpp/tcp/event.h>
+#include <cnetpp/tcp/interrupter.h>
 
-#include "event.h"
-#include "interrupter.h"
+#include <memory>
 
 namespace cnetpp {
 namespace tcp {
@@ -45,6 +45,9 @@ class EventCenter;
  */
 class EventPoller {
  public:
+  virtual ~EventPoller() {
+  }
+
   /**
    * factory function. Create a EventPoller instance.
    * @param id              the identifier of the EventPoller

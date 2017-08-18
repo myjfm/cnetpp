@@ -24,7 +24,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 //
-#include "pipe_interrupter_impl.h"
+#include <cnetpp/tcp/pipe_interrupter_impl.h>
 
 #include <fcntl.h>
 #include <unistd.h>

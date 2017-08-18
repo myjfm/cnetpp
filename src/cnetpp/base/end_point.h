@@ -31,7 +31,7 @@
 
 #include <string>
 
-#include "ip_address.h"
+#include <cnetpp/base/ip_address.h>
 
 namespace cnetpp {
 namespace base {

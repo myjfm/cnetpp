@@ -1,5 +1,6 @@
+#include <cnetpp/base/uri.h>
+
 #include <gtest/gtest.h>
-#include <base/uri.h>
 
 TEST(Uri, ParseTest) {
   cnetpp::base::Uri uri;

@@ -25,17 +25,16 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //
 #if !defined(DARWIN_SYSTEM)
-#include "select_event_poller_impl.h"
+#include <cnetpp/tcp/select_event_poller_impl.h>
+#include <cnetpp/tcp/event.h>
+#include <cnetpp/tcp/event_center.h>
+#include <cnetpp/tcp/interrupter.h>
+#include <cnetpp/concurrency/this_thread.h>
 
 #include <sys/select.h>
 #include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
-
-#include "event.h"
-#include "event_center.h"
-#include "interrupter.h"
-#include "../concurrency/this_thread.h"
 
 namespace cnetpp {
 namespace tcp {

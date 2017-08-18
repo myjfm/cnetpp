@@ -27,13 +27,13 @@
 #ifndef CNETPP_CONCURRENCY_THREAD_FACTORY_H_
 #define CNETPP_CONCURRENCY_THREAD_FACTORY_H_
 
+#include <cnetpp/concurrency/task.h>
+#include <cnetpp/concurrency/queue_base.h>
+#include <cnetpp/concurrency/thread.h>
+#include <cnetpp/concurrency/thread_pool.h>
+
 #include <memory>
 #include <mutex>
-
-#include "task.h"
-#include "queue_base.h"
-#include "thread.h"
-#include "thread_pool.h"
 
 namespace cnetpp {
 namespace concurrency {

@@ -27,12 +27,12 @@
 #ifndef CNETPP_CONCURRENCY_THREAD_MANAGER_H_
 #define CNETPP_CONCURRENCY_THREAD_MANAGER_H_
 
+#include <cnetpp/concurrency/thread.h>
+#include <cnetpp/concurrency/thread_pool.h>
+#include <cnetpp/concurrency/queue_base.h>
+
 #include <memory>
 #include <functional>
-
-#include "thread.h"
-#include "thread_pool.h"
-#include "queue_base.h"
 
 namespace cnetpp {
 namespace concurrency {

@@ -24,9 +24,9 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 //
-#include "http_server.h"
-#include "http_request.h"
-#include "../tcp/tcp_options.h"
+#include <cnetpp/http/http_server.h>
+#include <cnetpp/http/http_request.h>
+#include <cnetpp/tcp/tcp_options.h>
 
 namespace cnetpp {
 namespace http {

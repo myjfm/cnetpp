@@ -24,15 +24,15 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 //
-#include "tcp_connection.h"
+#include <cnetpp/tcp/tcp_connection.h>
+#include <cnetpp/tcp/command.h>
+#include <cnetpp/tcp/ring_buffer.h>
+#include <cnetpp/tcp/event_center.h>
+#include <cnetpp/base/socket.h>
 
 #include <assert.h>
-#include <memory>
 
-#include "command.h"
-#include "ring_buffer.h"
-#include "event_center.h"
-#include "../base/socket.h"
+#include <memory>
 
 namespace cnetpp {
 namespace tcp {

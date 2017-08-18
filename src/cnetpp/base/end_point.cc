@@ -24,13 +24,12 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 //
-#include "end_point.h"
+#include <cnetpp/base/end_point.h>
+#include <cnetpp/base/string_utils.h>
 
 #include <arpa/inet.h>
 #include <assert.h>
 #include <netinet/in.h>
-
-#include "string_utils.h"
 
 namespace cnetpp {
 namespace base {

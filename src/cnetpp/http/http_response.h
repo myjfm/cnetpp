@@ -27,11 +27,10 @@
 #ifndef CNETPP_HTTP_HTTP_RESPONSE_H_
 #define CNETPP_HTTP_HTTP_RESPONSE_H_
 
-#include "http_packet.h"
+#include <cnetpp/http/http_packet.h>
+#include <cnetpp/base/string_piece.h>
 
 #include <string>
-
-#include "../base/string_piece.h"
 
 namespace cnetpp {
 namespace http {

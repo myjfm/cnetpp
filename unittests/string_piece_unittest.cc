@@ -1,6 +1,9 @@
-#include <gtest/gtest.h>
-#include <base/string_piece.h>
+#include <cnetpp/base/string_piece.h>
+
 #include <string>
+
+#include <gtest/gtest.h>
+
 using namespace std;
 using namespace cnetpp::base;
 

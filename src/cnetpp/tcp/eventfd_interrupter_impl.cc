@@ -25,7 +25,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //
 #ifdef LINUX_SYSTEM
-#include "eventfd_interrupter_impl.h"
+#include <cnetpp/tcp/eventfd_interrupter_impl.h>
 
 #include <sys/eventfd.h>
 #include <unistd.h>

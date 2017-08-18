@@ -27,7 +27,7 @@
 #ifndef CNETPP_CONCURRENCY_PRIORITY_QUEUE_H_
 #define CNETPP_CONCURRENCY_PRIORITY_QUEUE_H_
 
-#include "queue_base.h"
+#include <cnetpp/concurrency/queue_base.h>
 
 namespace cnetpp {
 namespace concurrency {

@@ -27,14 +27,14 @@
 #ifndef CNETPP_CONCURRENCY_THREAD_POOL_H_
 #define CNETPP_CONCURRENCY_THREAD_POOL_H_
 
+#include <cnetpp/concurrency/thread.h>
+#include <cnetpp/concurrency/queue_base.h>
+#include <cnetpp/concurrency/task.h>
+
 #include <list>
 #include <memory>
 #include <mutex>
 #include <condition_variable>
-
-#include "thread.h"
-#include "queue_base.h"
-#include "task.h"
 
 namespace cnetpp {
 namespace concurrency {
