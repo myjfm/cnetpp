@@ -30,9 +30,7 @@
 #include <cnetpp/tcp/interrupter.h>
 #include <cnetpp/concurrency/this_thread.h>
 
-#include <sys/select.h>
 #include <errno.h>
-#include <unistd.h>
 #include <fcntl.h>
 
 namespace cnetpp {
