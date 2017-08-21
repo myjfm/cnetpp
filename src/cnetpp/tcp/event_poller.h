@@ -99,7 +99,7 @@ class EventPoller {
    * - close the event handler(if using MsgWaitForMultipleObjectsEx).
    */
   virtual void Shutdown() {
-    interrupter_.reset();
+    //interrupter_.reset();
     DoShutdown();
   }
 
