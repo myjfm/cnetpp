@@ -63,10 +63,10 @@ class PriorityQueue final : public QueueBase {
           return (!queue_.empty() || stop_.load(std::memory_order_acquire));
       });
     } else {
-      if (!cond_var_.wait_for(guard_, 
-                          std::chrono::milliseconds(timeout), 
+      if (!cond_var_.wait_for(guard,
+                          std::chrono::milliseconds(timeout),
                           [this] {
-                            return (!queue_.empty() || 
+                            return (!queue_.empty() ||
                               stop_.load(std::memory_order_acquire));
                           })) {
         return nullptr; // timed out
