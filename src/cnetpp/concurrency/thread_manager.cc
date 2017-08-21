@@ -102,51 +102,60 @@ void ThreadManager::DestroyThreadPool(std::shared_ptr<ThreadPool> thread_pool) {
   }
 }
 
-std::shared_ptr<Thread> ThreadManager::CreateThread(std::shared_ptr<Task> task)
+std::shared_ptr<Thread> ThreadManager::CreateThread(std::shared_ptr<Task> task,
+                                                    bool auto_start)
 {
   auto new_thread = ThreadFactory::Instance()->CreateThread(task);
   AddThread(new_thread);
-  // start the thread automatically
-  new_thread->Start();
+  if (auto_start) {
+    // start the thread automatically
+    new_thread->Start();
+  }
   return std::move(new_thread);
 }
 
 std::shared_ptr<Thread> ThreadManager::CreateThread(
-    Thread::StartRoutine start_routine,
-    void* arg) {
+    Thread::StartRoutine start_routine, void* arg, bool auto_start) {
   auto new_thread = ThreadFactory::Instance()->CreateThread(start_routine, arg);
   AddThread(new_thread);
-  // start the thread automatically
-  new_thread->Start();
+  if (auto_start) {
+    // start the thread automatically
+    new_thread->Start();
+  }
   return std::move(new_thread);
 }
 
 std::shared_ptr<Thread> ThreadManager::CreateThread(
-    const std::function<void()>& closure) {
+    const std::function<void()>& closure, bool auto_start) {
   auto new_thread = ThreadFactory::Instance()->CreateThread(closure);
   AddThread(new_thread);
-  // start the thread automatically
-  new_thread->Start();
+  if (auto_start) {
+    // start the thread automatically
+    new_thread->Start();
+  }
   return std::move(new_thread);
 }
 
 std::shared_ptr<Thread> ThreadManager::CreateThread(
-    std::function<void()>&& closure) {
+    std::function<void()>&& closure, bool auto_start) {
   auto new_thread = ThreadFactory::Instance()->CreateThread(std::move(closure));
   AddThread(new_thread);
-  // start the thread automatically
-  new_thread->Start();
+  if (auto_start) {
+    // start the thread automatically
+    new_thread->Start();
+  }
   return std::move(new_thread);
 }
 
 std::shared_ptr<ThreadPool> ThreadManager::CreateThreadPool(
-    size_t thread_count,
-    std::shared_ptr<QueueBase> queue) {
+    size_t thread_count, std::shared_ptr<QueueBase> queue, bool auto_start) {
   auto new_thread_pool = 
     ThreadFactory::Instance()->CreateThreadPool(thread_count, std::move(queue));
   AddThreadPool(new_thread_pool);
-  // start the thread pool automatically
-  new_thread_pool->Start();
+  if (auto_start) {
+    // start the thread pool automatically
+    new_thread_pool->Start();
+  }
   return std::move(new_thread_pool);
 }
 

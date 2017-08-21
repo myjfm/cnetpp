@@ -28,6 +28,7 @@
 #include <cnetpp/tcp/event_poller.h>
 #include <cnetpp/concurrency/thread_manager.h>
 #include <cnetpp/concurrency/task.h>
+#include <cnetpp/base/log.h>
 
 #include <thread>
 
@@ -62,13 +63,16 @@ EventCenter::EventCenter(size_t thread_num)
 bool EventCenter::Launch() {
   for (size_t i = 0; i < internal_event_poller_infos_.size(); ++i) {
     if (!internal_event_poller_infos_[i]->event_poller_->Init(shared_from_this())) {
-      continue;
+      Fatal("Failed to initialize EventPoller.");
     }
+    Info("EventPoller %d initialized.", i);
     std::shared_ptr<concurrency::Task> task(
         new InternalEventTask(shared_from_this(),
                               internal_event_poller_infos_[i]->event_poller_));
-    internal_event_poller_infos_[i]->event_poller_thread_ =
-        concurrency::ThreadManager::Instance()->CreateThread(task);
+    // Can not start the thread until put it into vector
+    auto t = concurrency::ThreadManager::Instance()->CreateThread(task, false);
+    internal_event_poller_infos_[i]->event_poller_thread_ = t;
+    t->Start();
   }
   return true;
 }

@@ -29,6 +29,7 @@
 #include <cnetpp/tcp/event.h>
 #include <cnetpp/tcp/event_center.h>
 #include <cnetpp/concurrency/this_thread.h>
+#include <cnetpp/base/log.h>
 
 #include <errno.h>
 #include <unistd.h>
@@ -40,6 +41,9 @@ namespace tcp {
 bool EpollEventPollerImpl::DoInit() {
   epoll_fd_ = ::epoll_create1(EPOLL_CLOEXEC);
   if (epoll_fd_ < 0) {
+    Error("epoll_create1() failed. erro message: %s",
+        concurrency::ThisThread::GetErrorString(
+          concurrency::ThisThread::GetLastError()).c_str());
     return false;
   }
   return true;

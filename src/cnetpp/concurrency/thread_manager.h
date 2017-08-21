@@ -65,20 +65,25 @@ class ThreadManager final {
   void DestroyThreadPool(std::shared_ptr<ThreadPool> thread_pool);
   
   // create thread using functor object
-  std::shared_ptr<Thread> CreateThread(std::shared_ptr<Task> task);
+  std::shared_ptr<Thread> CreateThread(std::shared_ptr<Task> task,
+                                       bool auto_start = true);
   
   // create thread using function pointer
   std::shared_ptr<Thread> CreateThread(Thread::StartRoutine start_routine,
-                                       void* arg = nullptr);
+                                       void* arg = nullptr,
+                                       bool auto_start = true);
   
   // create thread using std::function introduced by c++11
-  std::shared_ptr<Thread> CreateThread(const std::function<void()>& closure);
-  std::shared_ptr<Thread> CreateThread(std::function<void()>&& closure);
+  std::shared_ptr<Thread> CreateThread(const std::function<void()>& closure,
+                                       bool auto_start = true);
+  std::shared_ptr<Thread> CreateThread(std::function<void()>&& closure,
+                                       bool auto_start = true);
   
   // create a thread pool
   // thread_count refers to the number of threads that the thread pool has
   std::shared_ptr<ThreadPool> CreateThreadPool(size_t thread_count = 0,
-      std::shared_ptr<QueueBase> queue = CreateDefaultQueue());
+      std::shared_ptr<QueueBase> queue = CreateDefaultQueue(),
+      bool auto_start = true);
 
  private:
   // Singleton class
