@@ -42,12 +42,12 @@ int main(int argc, const char **argv) {
   };
 
   http_options.set_connected_callback([&send_func] (HttpConnectionPtr c) -> bool {
-      INFO("Connected to the server");
+      Info("Connected to the server");
       return send_func(c);
   });
 
   http_options.set_closed_callback([] (HttpConnectionPtr c) -> bool {
-      INFO("Connection closed");
+      Info("Connection closed");
       (void) c;
       return true;
   });
@@ -58,13 +58,13 @@ int main(int argc, const char **argv) {
         std::static_pointer_cast<cnetpp::http::HttpResponse>(c->http_packet());
       std::string headers;
       http_response->HttpHeadersToString(&headers);
-      INFO("headers: %s", headers.c_str());
+      Info("headers: %s", headers.c_str());
       if (http_response->http_body().length() > 0) {
-        INFO("body: %s", http_response->http_body().c_str());
+        Info("body: %s", http_response->http_body().c_str());
       }
       if (counts[c->id()]++ == 10) {
         c->MarkAsClosed();
-        INFO("MarkAsClosed");
+        Info("MarkAsClosed");
         return true;
       } else {
         return send_func(c);
@@ -73,20 +73,20 @@ int main(int argc, const char **argv) {
 
   http_options.set_sent_callback([] (bool success, HttpConnectionPtr c) -> bool {
     (void) c;
-    INFO("Send packet successfully");
+    Info("Send packet successfully");
     return success;
   });
 
   cnetpp::http::HttpClient http_client;
   if (!http_client.Launch(1)) {
-    FATAL("Failed to launch http client, exiting...");
+    Fatal("Failed to launch http client, exiting...");
     return 1;
   }
 
   for (auto i = 0; i < 8; ++i) {
     auto connection_id = http_client.Connect(argv[1], http_options);
     if (connection_id == cnetpp::tcp::kInvalidConnectionId) {
-      INFO("Failed to connect to server");
+      Info("Failed to connect to server");
       return 1;
     }
   }

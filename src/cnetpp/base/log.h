@@ -94,19 +94,19 @@ class Log {
 
 extern Log LOG;
 
-#define DEBUG(fmt, ...) \
+#define Debug(fmt, ...) \
   cnetpp::base::LOG.Debug(" %s:%d] " fmt, __FILE__, __LINE__, ##__VA_ARGS__);
 
-#define INFO(fmt, ...) \
+#define Info(fmt, ...) \
   cnetpp::base::LOG.Info(" %s:%d] " fmt, __FILE__, __LINE__, ##__VA_ARGS__);
 
-#define WARN(fmt, ...) \
+#define Warn(fmt, ...) \
   cnetpp::base::LOG.Warn(" %s:%d] " fmt, __FILE__, __LINE__, ##__VA_ARGS__);
 
-#define ERROR(fmt, ...) \
+#define Error(fmt, ...) \
   cnetpp::base::LOG.Error(" %s:%d] " fmt, __FILE__, __LINE__, ##__VA_ARGS__);
 
-#define FATAL(fmt, ...) \
+#define Fatal(fmt, ...) \
   cnetpp::base::LOG.Fatal(" %s:%d] " fmt, __FILE__, __LINE__, ##__VA_ARGS__);
 
 }  // namespace base
