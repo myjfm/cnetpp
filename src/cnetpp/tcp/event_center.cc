@@ -75,7 +75,6 @@ bool EventCenter::Launch() {
 
 void EventCenter::Shutdown() {
   for (auto& poller_info : internal_event_poller_infos_) {
-    poller_info->event_poller_->Interrupt();
     poller_info->event_poller_thread_->Stop();
   }
   internal_event_poller_infos_.clear();
@@ -104,6 +103,11 @@ bool EventCenter::ProcessAllPendingCommands(size_t id) {
   }
 
   auto& info = internal_event_poller_infos_[id];
+  if (info->event_poller_thread_->GetStatus() ==
+      concurrency::Thread::Status::kStop) {
+    return false;
+  }
+
   std::vector<Command> pending_commands;
   {
     std::lock_guard<std::mutex> guard(info->pending_commands_mutex_);

@@ -91,7 +91,7 @@ int main(int argc, const char **argv) {
     }
   }
 
-  sleep(1000);
+  sleep(2);
 
   http_client.Shutdown();
 
