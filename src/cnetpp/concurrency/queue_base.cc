@@ -26,72 +26,15 @@
 //
 #include <cnetpp/concurrency/queue_base.h>
 
-#include <chrono>
+#include <memory>
 
 namespace cnetpp {
 namespace concurrency {
 
-std::shared_ptr<QueueBase> CreateDefaultQueue() {
-	return std::make_shared<DefaultQueue>();
+std::shared_ptr<QueueBase> CreateDefaultQueue(size_t capacity) {
+  return std::static_pointer_cast<QueueBase>(
+      std::make_shared<DefaultQueue>(capacity));
 }
 
-DefaultQueue::~DefaultQueue() {
-	stop_.store(true, std::memory_order_release);
-	cond_var_.notify_all();
-}
-
-void DefaultQueue::Push(std::shared_ptr<Task> task) {
-  std::unique_lock<std::mutex> guard(mutex_);
-	queue_.push(std::move(task));
-	cond_var_.notify_one();
-}
-
-std::shared_ptr<Task> DefaultQueue::TryPop() {
-  std::unique_lock<std::mutex> guard(mutex_);
-	if (queue_.empty()) {
-		return nullptr;
-  }
-  std::shared_ptr<Task> result(std::move(queue_.front()));
-	queue_.pop();
-	return result;
-}
-	
-std::shared_ptr<Task> DefaultQueue::WaitPop(int timeout) {
-  std::unique_lock<std::mutex> guard(mutex_);
-	if (timeout <= 0) {
-		cond_var_.wait(guard, [this] {
-        return (!queue_.empty() || stop_.load(std::memory_order_acquire));
-    });
-	} else {
-    if (!cond_var_.wait_for(guard,
-                            std::chrono::milliseconds(timeout),
-                            [this] {
-                              return (!queue_.empty() ||
-                                      stop_.load(std::memory_order_acquire));
-                            })) {
-      return nullptr; // timed out
-    }
-  }
-  
-  if (stop_) {
-    return nullptr;
-  }
-  
-  std::shared_ptr<Task> task(std::move(queue_.front()));
-  queue_.pop();
-  return task;
-}
-
-bool DefaultQueue::Empty() const {
-  std::unique_lock<std::mutex> lGuard(mutex_);
-  return queue_.empty();
-}
-
-size_t DefaultQueue::Size() const {
-  std::unique_lock<std::mutex> lGuard(mutex_);
-  return queue_.size();
-}
-
-} // end of namespace concurrency
-} // end of namespace cnetpp
-
+}  // namespace concurrency
+}  // namespace cnetpp

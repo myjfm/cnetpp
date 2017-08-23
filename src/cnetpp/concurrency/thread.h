@@ -31,6 +31,7 @@
 #include <cnetpp/concurrency/spin_lock.h>
 
 #include <memory>
+#include <atomic>
 #include <thread>
 
 namespace cnetpp {
@@ -39,105 +40,72 @@ namespace concurrency {
 // DO NOT inherit it, instead, inherit the Task interface
 class Thread final {
 public:
-  using StartRoutine = bool(*)(void* arg);
   using Id = std::thread::id;
+  static const size_t kMaxNameLength = 16;
 
-  enum class Status {
+  enum class Status : int {
     kInit = 0x0,
     kRunning = 0x1,
-    kSuspend = 0x2, // not implemented
-    kStop = 0x4,
+    kStop = 0x3,
   };
+
+  explicit Thread(std::shared_ptr<Task> task,
+      const std::string& name = "");
+  explicit Thread(const std::function<bool()>& closure,
+      const std::string& name = "");
 
   ~Thread();
 
-  // Thread is an RAII class, and 
-  // disallow copy operations
   Thread(const Thread&) = delete;
   Thread& operator=(const Thread&) = delete;
 
-  // DO NOT move the Thread instance, 
-  // because we have a SpinLock inside it.
-  Thread(Thread&&) = delete;
-  Thread& operator=(Thread&&) = delete;
-  
-  // Get the current status of the thread
-  // return
-  //    * kInit     the thread has not started yet, 
-  //    * kRunning  the thread is running,
-  //    * kSuspend  the thread currently is paused, may support it in the future
-  //    * kStop     the thread has already stopped
   Status GetStatus() const noexcept {
-    SpinLock::ScopeGuard guard(status_lock_);
-    return status_;
+    return status_.load(std::memory_order_acquire);
   }
   
-  // after calling this method, the thread starts running
   void Start();
 
   void Stop();
 
+  const std::string& name() const {
+    return name_;
+  }
+
   Id GetId() const noexcept {
-    return thread_.get_id();
+    return thread_->get_id();
   }
   
-  // TODO(myjfm)
-  // implement it in the future
-  void Suspend() {
-    assert(false);
-  }
-  
-  // TODO(myjfm) 
-  // implement it in the future
-  // detach this thread, so this thread will become unjoinable
-  void Detach() {
-    assert(false);
-#if 0
-  if (thread_.joinable()) {
-    thread_.detach();
-  }
-#endif
-  }
-  
-  // TODO(myjfm)
-  // implement it in the future
-  // join the thread, wait until it finishes
-  void Join() {
-    assert(false);
-#if 0
-  if (thread_.joinable()) {
-    thread_.join();
-  }
-#endif
-  }
+  void Join();
   
   // check whether this thread is joinable
   bool IsJoinable() const noexcept {
-    return thread_.joinable();
+    return thread_->joinable();
   }
 
  private:
-  // Please use ThreadManager to create the thread, and 
-  // then you can safely forget to call the Stop().
-  // Because the ThreadManager manages all the threads intelligently.
-  friend class ThreadFactory;
-  explicit Thread(StartRoutine start_routine, void* arg = nullptr);
-  explicit Thread(std::shared_ptr<Task> task);
-  explicit Thread(const std::function<void()>& closure);
-  explicit Thread(std::function<void()>&& closure);
+  class InternalTask : public Task {
+   public:
+    InternalTask(const std::function<bool()>& closure) : closure_(closure) {
+    }
 
-  StartRoutine start_routine_;
-  void* arg_;
-  std::function<void()> closure_;
+    ~InternalTask() = default;
+
+    bool operator()(void* arg = nullptr) override {
+      (void) arg;
+      return closure_();
+    }
+
+   private:
+    std::function<bool()> closure_;
+  };
+
+  std::string name_;
+
   std::shared_ptr<Task> task_;
 
-  // We use std::thread introduced from c++11 as the thread entity
-  std::thread thread_;
+  std::unique_ptr<std::thread> thread_;
 
-  mutable SpinLock status_lock_;
-  Status status_;
-
-  void DoStart();
+  std::atomic<Status> status_ { Status::kInit };
 };
 
 }  // namespace concurrency

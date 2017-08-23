@@ -66,14 +66,6 @@ int ThisThread::GetId() {
   return tid;
 }
 
-void ThisThread::Sleep(int64_t time_in_milliseconds) {
-  usleep(time_in_milliseconds);
-}
-
-void ThisThread::Exit() {
-  ::pthread_exit(nullptr);  // std::this_thread doesn't support it, use pthread
-}
-
 int ThisThread::GetLastError() {
   return errno;  // thraed local variable
 }

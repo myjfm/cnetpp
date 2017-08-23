@@ -25,7 +25,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //
 #include <cnetpp/concurrency/thread_pool.h>
-#include <cnetpp/concurrency/thread_factory.h>
+#include <cnetpp/base/log.h>
 
 #include <algorithm>
 
@@ -36,71 +36,102 @@ namespace {
   const size_t kDefaultThreadCount = 5;
 }
 
-ThreadPool::ThreadPool(size_t thread_count)
-    : ThreadPool(CreateDefaultQueue(), thread_count) { }
+ThreadPool::ThreadPool(const std::string& name)
+    : ThreadPool(name, CreateDefaultQueue(), false) {
+}
 
-ThreadPool::ThreadPool(std::shared_ptr<QueueBase> queue, size_t thread_count) {
-  queue_ = std::move(queue);
+ThreadPool::ThreadPool(const std::string& name,
+                       std::shared_ptr<QueueBase> queue)
+    : ThreadPool(name, queue, false) {
+}
 
-  if (thread_count == 0) {
-    thread_count = std::thread::hardware_concurrency();
+ThreadPool::ThreadPool(const std::string& name, bool enable_delay)
+    : ThreadPool(name, CreateDefaultQueue(), enable_delay) {
+}
+
+ThreadPool::ThreadPool(const std::string& name,
+                       std::shared_ptr<QueueBase> queue,
+                       bool enable_delay)
+    : name_(name), queue_(queue), enable_delay_(enable_delay) {
+  size_t num_threads = std::thread::hardware_concurrency();
+  if (num_threads == 0) {
+    num_threads = kDefaultThreadCount;
   }
-  if (thread_count == 0) {
-    thread_count = kDefaultThreadCount;
-  }
 
-  std::vector<std::shared_ptr<Thread>> tmp_threads(thread_count);
-  threads_.swap(tmp_threads);
+  threads_.resize(num_threads);
 }
 
 void ThreadPool::Start() {
-  {
-    SpinLock::ScopeGuard guard(status_lock_);
-    if (status_ != Status::kInit) {
-      return;
-    }
-    status_ = Status::kRunning;
+  Status old = Status::kInit;
+  if (!status_.compare_exchange_strong(old, Status::kRunning)) {
+    Fatal("Failed to start thread pool, invalid thread status: %d",
+        static_cast<int>(old));
   }
 
+  int32_t nr = 0;
   for (auto& t: threads_) {
-    t = ThreadFactory::Instance()->CreateThread([this] {
-      DoTask();
-    });
+    t = std::make_unique<Thread>([this] () -> bool { DoTask(); return true; },
+        name_ + "-" + std::to_string(nr));
     t->Start();
+    Info("Thread %s-%d started.", name_.c_str(), nr);
+    nr++;
+  }
+
+  if (enable_delay_) {
+    delay_queue_ = std::make_unique<DelayQueue>();
+    delay_thread_ = std::make_unique<Thread>(
+        [this] () -> bool { PollDelayTask(); return true; }, name_ + "-d");
+    delay_thread_->Start();
+    Info("Delay thread %s-d started.", name_.c_str());
   }
 }
 
-void ThreadPool::Stop() {
-  {
-    SpinLock::ScopeGuard guard(status_lock_);
-    if (status_ != Status::kRunning) {
-      return;
-    }
-    status_ = Status::kStop;
+void ThreadPool::Stop(bool wait) {
+  Status old = Status::kRunning;
+  if (!status_.compare_exchange_strong(old, Status::kStop)) {
+    return;
   }
 
   {
-    std::lock_guard<std::mutex> guard(running_tasks_mutex_);
-    for_each(running_tasks_.begin(), running_tasks_.end(),
-        [] (std::shared_ptr<Task> running_task) {
-          running_task->Stop();
-        }
-    );
-    stop_.store(true, std::memory_order_release);
+    std::unique_lock<std::mutex> guard(mutex_);
+    stopping_.store(true, std::memory_order_release);
+    force_stop_.store(!wait, std::memory_order_release);
+    queue_cv_.notify_all();
+    delay_queue_cv_.notify_all();
   }
 
-  queue_cond_var_.notify_all();
+  delay_thread_->Stop();
+  Info("Delay thread %s stopped.", delay_thread_->name().c_str());
 
   for (auto& t : threads_) {
-    // blocking stop
     t->Stop();
+    Info("Thread %s stopped.", t->name().c_str());
   }
 }
 
-void ThreadPool::AddTask(std::shared_ptr<Task> task) {
-  std::unique_lock<std::mutex> guard(queue_mutex_);
-  queue_->Push(task);
-  queue_cond_var_.notify_one();
+bool ThreadPool::AddTask(std::shared_ptr<Task> task) {
+  if (status_.load(std::memory_order_acquire) != Status::kRunning) {
+    Error("Thread pool is not running.");
+    return false;
+  }
+
+  std::lock_guard<std::mutex> guard(mutex_);
+  if (stopping_.load(std::memory_order_acquire)) {
+    Error("Adding a task in a stopped thread pool.");
+    return false;
+  }
+  size_t pending_tasks = queue_->size();
+  if (enable_delay_) {
+    pending_tasks += delay_queue_->size();
+  }
+  if (max_num_pending_tasks_ > 0 && pending_tasks >= max_num_pending_tasks_) {
+    Error("Queue is full.");
+    return false;
+  }
+  auto r = queue_->Push(task);
+  assert(r);
+  queue_cv_.notify_one();
+  return true;
 }
 
 class InternalTask final : public Task {
@@ -109,79 +140,129 @@ class InternalTask final : public Task {
       : closure_(std::move(closure)) {
   }
 
-  InternalTask(Thread::StartRoutine start_routine)
-      : start_routine_(start_routine) {
-  }
-
   bool operator()(void* arg = nullptr) override final {
-    if (closure_) {
-      return closure_();
-    } else if (start_routine_) {
-      return start_routine_(nullptr);
-    }
+    (void) arg;
+    assert(closure_);
+    return closure_();
   }
 
-  virtual ~InternalTask() { }
+  virtual ~InternalTask() {
+  }
 
  private:
   std::function<bool()> closure_ { nullptr };
-  Thread::StartRoutine start_routine_ { nullptr };
 };
 
-void ThreadPool::AddTask(std::function<bool()> closure) {
-  std::shared_ptr<Task> internal_task(new InternalTask(std::move(closure)));
-  std::unique_lock<std::mutex> guard(queue_mutex_);
-  queue_->Push(internal_task);
-  queue_cond_var_.notify_one();
+bool ThreadPool::AddTask(const std::function<bool()>& closure) {
+  auto task =
+    std::static_pointer_cast<Task>(std::make_shared<InternalTask>(closure));
+  return AddTask(task);
 }
 
-void ThreadPool::AddTask(Thread::StartRoutine start_routine) {
-  std::shared_ptr<Task> internal_task(new InternalTask(start_routine));
-  std::unique_lock<std::mutex> guard(queue_mutex_);
-  queue_->Push(internal_task);
-  queue_cond_var_.notify_one();
+bool ThreadPool::AddDelayTask(std::shared_ptr<Task> task,
+    std::chrono::microseconds delay) {
+  if (status_.load(std::memory_order_acquire) != Status::kRunning) {
+    Error("Thread pool is not running.");
+    return false;
+  }
+
+  if (!enable_delay_) {
+    Error("The enable_delay option is turned off!");
+    return false;
+  }
+  std::lock_guard<std::mutex> guard(mutex_);
+  if (stopping_.load(std::memory_order_acquire)) {
+    Error("Adding a task in a stopped thread pool.");
+    return false;
+  }
+
+  if (max_num_pending_tasks_ > 0 &&
+      delay_queue_->size() + queue_->size() >= max_num_pending_tasks_) {
+    Error("Delay queue is full.");
+    return false;
+  }
+
+  auto r = delay_queue_->Push(
+      std::static_pointer_cast<Task>(std::make_shared<DelayTask>(task, delay)));
+  assert(r);
+  delay_queue_cv_.notify_one();
+  return true;
+}
+
+bool ThreadPool::AddDelayTask(const std::function<bool()>& closure,
+    std::chrono::microseconds delay) {
+  return AddDelayTask(
+      std::static_pointer_cast<Task>(std::make_shared<InternalTask>(closure)),
+      delay);
 }
 
 void ThreadPool::DoTask() {
-  while (!stop_.load(std::memory_order_acquire)) {
+  while (true) {
     std::shared_ptr<Task> task;
     {
-      std::unique_lock<std::mutex> guard(queue_mutex_);
-      queue_cond_var_.wait(guard, [this] {
-        return (!queue_->Empty() || stop_.load(std::memory_order_acquire));
+      std::unique_lock<std::mutex> guard(mutex_);
+      queue_cv_.wait(guard, [this] {
+        return (!queue_->Empty() || stopping_.load(std::memory_order_acquire));
       });
 
-      if (stop_.load(std::memory_order_acquire)) {
+      if (force_stop_.load(std::memory_order_acquire)) {
         return;
       }
 
-      task = queue_->TryPop(); // we just use TryPop()
-      if (!task.get()) { // this should not happen
-        // TODO(myjfm)
-        // log an error
+      task = queue_->TryPop();
+      if (!task.get()) {
+        if (stopping_.load(std::memory_order_acquire)) {
+          return;
+        }
         continue;
       }
     }
 
-    // put the task into the processing task buffer
-    {
-      std::lock_guard<std::mutex> guard(running_tasks_mutex_);
-      running_tasks_.push_back(task);
-    }
+    // do task
+    (*(task.get()))();
+  }
+}
 
-    if (stop_.load(std::memory_order_acquire)) {
+void ThreadPool::PollDelayTask() {
+  assert(enable_delay_);
+  while (true) {
+    if (stopping_ && force_stop_) {
+      Info("Forcing stop delay thread: %s-d, exit...", name_.c_str());
       return;
     }
 
-    // do task
-    (*(task.get()))();
-
-    // erase the task from the processing task buffer
+    std::shared_ptr<DelayTask> task;
     {
-      std::lock_guard<std::mutex> guard(running_tasks_mutex_);
-      running_tasks_.remove_if([task] (const std::shared_ptr<Task>& that_task) {
-        return that_task.get() == task.get();
-      });
+      std::unique_lock<std::mutex> guard(mutex_);
+      task = std::static_pointer_cast<DelayTask>(delay_queue_->Peek());
+      if (task) {
+        if (task->run_time_ > std::chrono::system_clock::now()) {
+          auto run_time = task->run_time_;
+          delay_queue_cv_.wait_until(guard, task->run_time_, [this, run_time] {
+            auto peek =
+                std::static_pointer_cast<DelayTask>(delay_queue_->Peek());
+            return stopping_.load(std::memory_order_acquire) ||
+                peek->run_time_ != run_time;  // new task arrived
+          });
+        } else {
+          // some task is expired
+          auto r = queue_->Push(std::static_pointer_cast<Task>(task));
+          assert(r);
+          auto t = delay_queue_->TryPop();
+          assert(t == std::static_pointer_cast<Task>(task));
+          queue_cv_.notify_one();
+        }
+      } else {
+        if (stopping_) {
+          Info("Stopping delay thread: %s-d, exit...", name_.c_str());
+          return;
+        }
+        // delay queue is empty
+        delay_queue_cv_.wait(guard, [this] {
+          return stopping_.load(std::memory_order_acquire) ||
+            !delay_queue_->Empty();
+        });
+      }
     }
   }
 }

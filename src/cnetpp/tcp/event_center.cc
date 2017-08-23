@@ -26,7 +26,7 @@
 //
 #include <cnetpp/tcp/event_center.h>
 #include <cnetpp/tcp/event_poller.h>
-#include <cnetpp/concurrency/thread_manager.h>
+#include <cnetpp/concurrency/thread.h>
 #include <cnetpp/concurrency/task.h>
 #include <cnetpp/base/log.h>
 
@@ -70,7 +70,8 @@ bool EventCenter::Launch() {
         new InternalEventTask(shared_from_this(),
                               internal_event_poller_infos_[i]->event_poller_));
     // Can not start the thread until put it into vector
-    auto t = concurrency::ThreadManager::Instance()->CreateThread(task, false);
+    auto t = std::make_shared<concurrency::Thread>(task,
+        "poller-"+std::to_string(i));
     internal_event_poller_infos_[i]->event_poller_thread_ = t;
     t->Start();
   }

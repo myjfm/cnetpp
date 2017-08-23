@@ -29,25 +29,27 @@
 
 #include <cnetpp/concurrency/queue_base.h>
 
+#include <queue>
+
 namespace cnetpp {
 namespace concurrency {
 
 template<class Compare>
 class PriorityQueue final : public QueueBase {
  public:
-  PriorityQueue() : stop_(false) {
+  PriorityQueue(size_t capacity = 0) : capacity_(capacity) {
   }
-
   virtual ~PriorityQueue() = default;
 
-  void Push(std::shared_ptr<Task> task) override final {
-    std::unique_lock<std::mutex> guard(mutex_);
+  bool Push(std::shared_ptr<Task> task) override {
+    if (capacity_ > 0 && queue_.size() >= capacity_) {
+      return false;
+    }
     queue_.push(std::move(task));
-    cond_var_.notify_one();
+    return true;
   }
 
-  std::shared_ptr<Task> TryPop() override final {
-    std::unique_lock<std::mutex> guard(mutex_);
+  std::shared_ptr<Task> TryPop() override {
     if (queue_.empty()) {
       return nullptr;
     }
@@ -56,58 +58,44 @@ class PriorityQueue final : public QueueBase {
     return result;
   }
 
-  std::shared_ptr<Task> WaitPop(int timeout = 0) override final {
-    std::unique_lock<std::mutex> guard(mutex_);
-    if (timeout <= 0) {
-      cond_var_.wait(guard, [this] {
-          return (!queue_.empty() || stop_.load(std::memory_order_acquire));
-      });
-    } else {
-      if (!cond_var_.wait_for(guard,
-                          std::chrono::milliseconds(timeout),
-                          [this] {
-                            return (!queue_.empty() ||
-                              stop_.load(std::memory_order_acquire));
-                          })) {
-        return nullptr; // timed out
-      }
-    }
-
-    if (stop_) {
+  std::shared_ptr<Task> Peek() override {
+    if (queue_.empty()) {
       return nullptr;
     }
-
-    std::shared_ptr<Task> result(std::move(queue_.top()));
-    queue_.pop();
-    return result;
+    return queue_.top();
   }
 
-  bool Empty() const override final {
-    std::unique_lock<std::mutex> guard(mutex_);
+  bool Empty() const override {
     return queue_.empty();
   }
 
-  size_t Size() const override final {
-    std::unique_lock<std::mutex> guard(mutex_);
+  bool Full() const override {
+    if (capacity_ > 0) {
+      return queue_.size() == capacity_;
+    } else {
+      return false;
+    }
+  }
+
+  size_t size() const override {
     return queue_.size();
   }
 
- private:
-  std::priority_queue<std::shared_ptr<Task>, 
-                      std::vector<std::shared_ptr<Task>>, 
-                      Compare> queue_;
-  mutable std::mutex mutex_;
-  std::condition_variable cond_var_;
+  size_t capacity() const override {
+    return capacity_;
+  }
 
-  std::atomic<bool> stop_;
+ private:
+  std::priority_queue<std::shared_ptr<Task>,
+                      std::deque<std::shared_ptr<Task>>,
+                      Compare> queue_;
+  size_t capacity_ { 0 };
 };
 
-// Create a thread-safe priority queue.
-// user should provide the comparison functor or function
-// @return the pointer of the queue
 template<class Compare>
-std::shared_ptr<QueueBase> CreatePriorityQueue() {
-  return std::make_shared<PriorityQueue<Compare>>();
+inline std::shared_ptr<QueueBase> CreatePriorityQueue(size_t capacity = 0) {
+  return std::static_pointer_cast<QueueBase>(
+      std::make_shared<PriorityQueue<Compare>>(capacity));
 }
 
 }  // namespace concurrency

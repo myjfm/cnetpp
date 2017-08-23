@@ -39,17 +39,8 @@ namespace concurrency {
 
 class ThisThread {
  public:
-  static void Yield() {
-    std::this_thread::yield();
-  }
-
   // this method can get the thread id with int type
   static int GetId();
-
-  // we don't use std::chrono just for convenience
-  static void Sleep(int64_t time_in_milliseconds);
-
-  static void Exit();
 
   static int GetLastError();
 

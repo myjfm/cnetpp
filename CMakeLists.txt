@@ -39,7 +39,9 @@ target_link_libraries(cnetpp_client_test cnetpp pthread)
 
 # Add unittests
 add_subdirectory(third_party/gtest-1.7.0)
-aux_source_directory(unittests UNITTEST_FILES)
+aux_source_directory(unittests/base UNITTEST_FILES)
+aux_source_directory(unittests/concurrency UNITTEST_FILES)
+aux_source_directory(unittests/tcp UNITTEST_FILES)
 add_executable(cnetpp_unittest ${UNITTEST_FILES})
 target_include_directories(cnetpp_unittest PRIVATE third_party/gtest-1.7.0/include unittest)
 target_link_libraries(cnetpp_unittest cnetpp gtest gtest_main pthread)

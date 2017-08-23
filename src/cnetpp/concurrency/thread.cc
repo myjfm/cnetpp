@@ -25,84 +25,77 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //
 #include <cnetpp/concurrency/thread.h>
+#include <cnetpp/base/log.h>
 
-#include <assert.h>
+#include <pthread.h>
+
+#include <cassert>
 
 namespace cnetpp {
 namespace concurrency {
 
-Thread::Thread(Thread::StartRoutine start_routine, void* arg)
-    : start_routine_(start_routine),
-      arg_(arg),
-      closure_(nullptr),
-      task_(nullptr),
-      status_(Status::kInit) { }
+Thread::Thread(std::shared_ptr<Task> task, const std::string& name)
+    : name_(name), task_(std::move(task)) {
+  if (name_.length() > kMaxNameLength) {
+    Fatal("Thread name is too long: %s", name_.c_str());
+  }
+}
 
-Thread::Thread(std::shared_ptr<Task> task)
-    : start_routine_(nullptr),
-      arg_(nullptr),
-      closure_(nullptr),
-      task_(std::move(task)),
-      status_(Status::kInit) { }
-
-Thread::Thread(const std::function<void()>& closure)
-    : start_routine_(nullptr),
-      arg_(nullptr),
-      closure_(closure),
-      task_(nullptr),
-      status_(Status::kInit) { }
-
-Thread::Thread(std::function<void()>&& closure)
-    : start_routine_(nullptr),
-      arg_(nullptr),
-      closure_(std::move(closure)),
-      task_(nullptr),
-      status_(Status::kInit) { }
+Thread::Thread(const std::function<bool()>& closure, const std::string& name)
+    : Thread(std::static_pointer_cast<Task>(
+          std::make_shared<InternalTask>(closure)), name) {
+}
 
 Thread::~Thread() {
   Stop();
 }
 
 void Thread::Start() {
-  {
-    SpinLock::ScopeGuard guard(status_lock_);
-    if (status_ != Status::kInit) {
-      return;
-    }
-    status_ = Status::kRunning;
+  if (!task_.get()) {
+    Fatal("task_ is null, please pass a valid task!");
   }
 
-  thread_ = std::thread([this] () {
-    DoStart();
+  Status old = Status::kInit;
+  if (!status_.compare_exchange_strong(old, Status::kRunning)) {
+    Fatal("Failed to start thread, invalid thread status: %d",
+        static_cast<int>(old));
+  }
+
+  if (thread_.get()) {
+    Fatal("thread_ is not null, there must be something wrong.");
+  }
+
+  thread_ = std::make_unique<std::thread>([this] () {
+    pthread_setname_np(pthread_self(), name_.c_str());
+    (*task_)();
   });
 }
 
-void Thread::DoStart() {
-  if (start_routine_) {
-    start_routine_(arg_);
-  } else if (task_) {
-    (*(task_.get()))();
-  } else if (closure_) {
-    closure_();
+void Thread::Stop() {
+  Status old = Status::kRunning;
+  if (!status_.compare_exchange_strong(old, Status::kStop)) {
+    return;
   }
+
+  task_->Stop();
+
+  if (thread_->joinable()) {
+    thread_->join();
+  }
+  thread_.reset();
 }
 
-void Thread::Stop() {
-  {
-    SpinLock::ScopeGuard guard(status_lock_);
-    if (status_ != Status::kRunning && status_ != Status::kSuspend) {
-      return;
-    }
-    status_ = Status::kStop;
+void Thread::Join() {
+  if (!thread_.get()) {
+    return;
   }
 
-  if (task_) {
-    task_->Stop();
+  if (!IsJoinable()) {
+    Fatal("The thread is not joinable!");
   }
-
-  if (thread_.joinable()) {
-    thread_.join();
-  }
+  thread_->join();
+  thread_.reset();
+  status_.store(Status::kStop, std::memory_order_acquire);
 }
 
 }  // namespace concurrency

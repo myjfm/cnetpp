@@ -31,9 +31,6 @@
 
 #include <memory>
 #include <queue>
-#include <atomic>
-#include <mutex>
-#include <condition_variable>
 
 namespace cnetpp {
 namespace concurrency {
@@ -43,61 +40,80 @@ class QueueBase {
   QueueBase() = default;
   virtual ~QueueBase() = default;
 
-  // disallow copy and move operations
-  QueueBase(const QueueBase&) = delete;
-  QueueBase& operator=(const QueueBase&) = delete;
-  QueueBase(QueueBase&&) noexcept = delete;
-  QueueBase& operator=(QueueBase&&) noexcept = delete;
-  
-  // push a task into queue
-  virtual void Push(std::shared_ptr<Task> task) = 0;
+  virtual bool Push(std::shared_ptr<Task> task) = 0;
   
   // get a task from queue, if empty, just return nullptr
   virtual std::shared_ptr<Task> TryPop() = 0;
   
-  // Get a task from queue.
-  // If empty, wait until it becomes not empty(timeout = 0) or
-  // timed out(timeout > 0)
-  // Return the poped task, nullptr if no task.
-  virtual std::shared_ptr<Task> WaitPop(int timeout = 0) = 0;
-  
+  virtual std::shared_ptr<Task> Peek() = 0;
+
   virtual bool Empty() const = 0;
   
-  virtual size_t Size() const = 0;
+  virtual bool Full() const = 0;
+
+  virtual size_t size() const = 0;
+
+  virtual size_t capacity() const = 0;
 };
 
-// create a default thread-safe queue
-// @return the pointer of the queue
-std::shared_ptr<QueueBase> CreateDefaultQueue();
-
-// The default queue is a thread-safe queue,
-// use std::queue as the backend entity, 
-// so its performance may be not perfect. 
-// But it should be enough for most requiements.
 class DefaultQueue final : public QueueBase {
  public:
-  DefaultQueue() = default;
-  virtual ~DefaultQueue();
+  explicit DefaultQueue(size_t capacity = 0) : capacity_(capacity) {
+  }
+  virtual ~DefaultQueue() = default;
 
  protected:
-  void Push(std::shared_ptr<Task> task) override final;
+  bool Push(std::shared_ptr<Task> task) override {
+    if (capacity_ > 0 && queue_.size() >= capacity_) {
+      return false;
+    }
 
-  virtual std::shared_ptr<Task> TryPop() override final;
+    queue_.push(std::move(task));
+    return true;
+  }
 
-  // may be blocked
-  virtual std::shared_ptr<Task> WaitPop(int timeout = 0) override final;
+  std::shared_ptr<Task> TryPop() override {
+    if (queue_.empty()) {
+      return nullptr;
+    }
+    std::shared_ptr<Task> result(std::move(queue_.front()));
+    queue_.pop();
+    return result;
+  }
 
-  virtual bool Empty() const override final;
+  std::shared_ptr<Task> Peek() override {
+    if (queue_.empty()) {
+      return nullptr;
+    }
+    return queue_.front();
+  }
 
-  virtual size_t Size() const override final;
+  bool Empty() const override {
+    return queue_.empty();
+  }
+
+  bool Full() const override {
+    if (capacity_ > 0) {
+      return queue_.size() == capacity_;
+    } else {
+      return false;
+    }
+  }
+
+  size_t size() const override {
+    return queue_.size();
+  }
+
+  size_t capacity() const override {
+    return capacity_;
+  }
 
  private:
   std::queue<std::shared_ptr<Task>> queue_;
-  mutable std::mutex mutex_;
-  std::condition_variable cond_var_;
-  std::atomic<bool> stop_ { false };
+  size_t capacity_ { 0 };
 };
 
+std::shared_ptr<QueueBase> CreateDefaultQueue(size_t capacity = 0);
 
 }  // namespace concurrency
 }  // namespace cnetpp
