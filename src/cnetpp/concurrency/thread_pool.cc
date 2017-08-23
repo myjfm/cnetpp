@@ -97,11 +97,15 @@ void ThreadPool::Stop(bool wait) {
     stopping_.store(true, std::memory_order_release);
     force_stop_.store(!wait, std::memory_order_release);
     queue_cv_.notify_all();
-    delay_queue_cv_.notify_all();
+    if (enable_delay_) {
+      delay_queue_cv_.notify_all();
+    }
   }
 
-  delay_thread_->Stop();
-  Info("Delay thread %s stopped.", delay_thread_->name().c_str());
+  if (enable_delay_) {
+    delay_thread_->Stop();
+    Info("Delay thread %s stopped.", delay_thread_->name().c_str());
+  }
 
   for (auto& t : threads_) {
     t->Stop();
