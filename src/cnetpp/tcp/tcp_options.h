@@ -139,6 +139,16 @@ class TcpServerOptions final : public TcpOptions {
  public:
   TcpServerOptions() = default;
   virtual ~TcpServerOptions() = default;
+
+  const std::string& name() const {
+    return name_;
+  }
+  void set_name(const std::string& name) {
+    name_ = name;
+  }
+
+ private:
+  std::string name_ { "dft" };
 };
 
 class TcpClientOptions final : public TcpOptions {

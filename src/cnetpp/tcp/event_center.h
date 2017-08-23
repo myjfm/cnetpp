@@ -50,7 +50,8 @@ class EventCenter final : public std::enable_shared_from_this<EventCenter> {
   // listen on two different ports. 'threads_num' indicates the number of
   // threads those process the network requests, if the value is set default,
   // it will use the number of logical processers.
-  static std::shared_ptr<EventCenter> New(size_t thread_num = 0);
+  static std::shared_ptr<EventCenter> New(const std::string& name,
+      size_t thread_num = 0);
 
   ~EventCenter() = default;
 
@@ -65,7 +66,7 @@ class EventCenter final : public std::enable_shared_from_this<EventCenter> {
   bool ProcessEvent(const Event& event, size_t id);
 
  private:
-  EventCenter(size_t thread_num = 0);
+  EventCenter(const std::string& name, size_t thread_num = 0);
 
   class InternalEventTask final : public concurrency::Task {
    public:
@@ -103,6 +104,8 @@ class EventCenter final : public std::enable_shared_from_this<EventCenter> {
   using InternalEventPollerInfoPtr = std::shared_ptr<InternalEventPollerInfo>;
 
   std::vector<InternalEventPollerInfoPtr> internal_event_poller_infos_;
+
+  std::string name_;
 
   void ProcessPendingCommand(InternalEventPollerInfoPtr info,
       const Command& command);

@@ -39,7 +39,8 @@ namespace {
   const size_t kDefaultThreadNum = 5;
 }
 
-std::shared_ptr<EventCenter> EventCenter::New(size_t thread_num) {
+std::shared_ptr<EventCenter> EventCenter::New(const std::string& name,
+    size_t thread_num) {
   if (thread_num <= 0) {
     thread_num = std::thread::hardware_concurrency();
   }
@@ -47,11 +48,11 @@ std::shared_ptr<EventCenter> EventCenter::New(size_t thread_num) {
     thread_num = kDefaultThreadNum;
   }
 
-  return std::shared_ptr<EventCenter>(new EventCenter(thread_num));
+  return std::shared_ptr<EventCenter>(new EventCenter(name, thread_num));
 }
 
-EventCenter::EventCenter(size_t thread_num)
-    : internal_event_poller_infos_(thread_num) {
+EventCenter::EventCenter(const std::string& name, size_t thread_num)
+    : internal_event_poller_infos_(thread_num), name_(name) {
   for (size_t i = 0; i < thread_num; ++i) {
     internal_event_poller_infos_[i] =
         std::make_shared<InternalEventPollerInfo>();
@@ -62,7 +63,8 @@ EventCenter::EventCenter(size_t thread_num)
 
 bool EventCenter::Launch() {
   for (size_t i = 0; i < internal_event_poller_infos_.size(); ++i) {
-    if (!internal_event_poller_infos_[i]->event_poller_->Init(shared_from_this())) {
+    if (!internal_event_poller_infos_[i]->event_poller_->Init(
+          shared_from_this())) {
       Fatal("Failed to initialize EventPoller.");
     }
     Info("EventPoller %d initialized.", i);
@@ -71,7 +73,7 @@ bool EventCenter::Launch() {
                               internal_event_poller_infos_[i]->event_poller_));
     // Can not start the thread until put it into vector
     auto t = std::make_shared<concurrency::Thread>(task,
-        "poller-"+std::to_string(i));
+        name_ + "-poller-" + std::to_string(i));
     internal_event_poller_infos_[i]->event_poller_thread_ = t;
     t->Start();
   }

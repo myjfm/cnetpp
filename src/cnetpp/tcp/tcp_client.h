@@ -51,7 +51,7 @@ class TcpClient final {
   TcpClient(TcpClient&&) = delete;
   TcpClient& operator=(TcpClient&&) = delete;
 
-  bool Launch(size_t worker_count = 1);
+  bool Launch(const std::string& name, size_t worker_count = 1);
   bool Shutdown();
 
   // connect with remote server

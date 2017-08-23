@@ -44,7 +44,7 @@ class HttpClient final : public HttpBase {
   ~HttpClient() = default;
 
   bool Launch(size_t worker_count = 1) {
-    return tcp_client_.Launch(worker_count);
+    return tcp_client_.Launch("hcli", worker_count);
   }
 
   tcp::ConnectionId Connect(const base::EndPoint* remote,
