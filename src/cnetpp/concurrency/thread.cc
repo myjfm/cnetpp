@@ -95,7 +95,7 @@ void Thread::Join() {
   }
   thread_->join();
   thread_.reset();
-  status_.store(Status::kStop, std::memory_order_acquire);
+  status_.store(Status::kStop, std::memory_order_release);
 }
 
 }  // namespace concurrency
