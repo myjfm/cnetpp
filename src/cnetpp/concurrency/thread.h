@@ -33,6 +33,7 @@
 #include <memory>
 #include <atomic>
 #include <thread>
+#include <string>
 
 namespace cnetpp {
 namespace concurrency {
