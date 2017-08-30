@@ -139,8 +139,8 @@ class StringPiece {
   }
 
   char operator[](size_type iIndex) const { 
-	assert(iIndex < len_ && iIndex >= 0);
-	return ptr_[iIndex]; 
+    assert(iIndex < len_);
+    return ptr_[iIndex];
   }
 
   void remove_prefix(ptrdiff_t n) {

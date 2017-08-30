@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 2.8)
 project(cnetpp)
 include_directories("${CMAKE_SOURCE_DIR}/src")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -std=c++14")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -std=c++14 -Werror")
 
 file(GLOB HTTP_HEADER_FILES "src/cnetpp/http/*.h")
 file(GLOB HTTP_SOURCE_FILES "src/cnetpp/http/*.cc")

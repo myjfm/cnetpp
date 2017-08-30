@@ -11,7 +11,7 @@ cc_library(
     deps=[
         "#pthread"
     ],
-    extra_cppflags=["-Wextra -Wno-unused-local-typedefs -std=c++14"]
+    extra_cppflags=["-Wextra -Wno-unused-local-typedefs -std=c++14 -Werror"]
 )
 
 cc_binary(
@@ -26,7 +26,7 @@ cc_binary(
         "#pthread",
         ":cnetpp",
     ],
-    extra_cppflags=["-Wextra -Wno-unused-local-typedefs -std=c++14"]
+    extra_cppflags=["-Wextra -Wno-unused-local-typedefs -std=c++14 -Werror"]
 )
 
 cc_binary(
