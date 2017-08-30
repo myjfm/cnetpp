@@ -78,7 +78,9 @@ int main(int argc, const char **argv) {
   });
 
   cnetpp::http::HttpClient http_client;
-  if (!http_client.Launch(1)) {
+  cnetpp::http::HttpClientOptions options;
+  options.set_worker_count(1);
+  if (!http_client.Launch(options)) {
     Fatal("Failed to launch http client, exiting...");
     return 1;
   }

@@ -40,6 +40,13 @@ class HttpOptions {
   virtual ~HttpOptions() {
   }
   
+  size_t worker_count() const {
+    return worker_count_;
+  }
+  void set_worker_count(size_t worker_count) {
+    worker_count_ = worker_count;
+  }
+
   size_t tcp_send_buffer_size() const {
     return tcp_send_buffer_size_;
   }
@@ -97,6 +104,7 @@ class HttpOptions {
   }
 
  private:
+  size_t worker_count_ { 0 };
   size_t tcp_send_buffer_size_ {32 * 1024 };
   size_t tcp_receive_buffer_size_ { 32 * 1024 };
   size_t send_buffer_size_ { 0 };

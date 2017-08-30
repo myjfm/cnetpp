@@ -46,7 +46,6 @@ class TcpServer final {
  public:
   // you must first call this method before you do any requests
   bool Launch(const base::EndPoint& local_address,
-              size_t worker_count = 0,
               const TcpServerOptions& options = TcpServerOptions());
   bool Shutdown();
 

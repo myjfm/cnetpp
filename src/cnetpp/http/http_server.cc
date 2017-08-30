@@ -32,14 +32,19 @@ namespace cnetpp {
 namespace http {
 
 bool HttpServer::Launch(const base::EndPoint& local_address,
-                        const HttpServerOptions& http_options,
-                        size_t worker_count) {
+                        const HttpServerOptions& http_options) {
   options_ = http_options;
 
   tcp::TcpServerOptions tcp_options;
   tcp_options.set_name("hsvr");
+  tcp_options.set_tcp_send_buffer_size(http_options.tcp_send_buffer_size());
+  tcp_options.set_tcp_receive_buffer_size(
+      http_options.tcp_receive_buffer_size());
+  tcp_options.set_worker_count(http_options.worker_count());
+  tcp_options.set_send_buffer_size(http_options.send_buffer_size());
+  tcp_options.set_receive_buffer_size(http_options.receive_buffer_size());
   SetCallbacks(tcp_options);
-  return tcp_server_.Launch(local_address, worker_count, tcp_options);
+  return tcp_server_.Launch(local_address, tcp_options);
 }
 
 bool HttpServer::HandleConnected(

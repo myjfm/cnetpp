@@ -39,9 +39,8 @@ namespace cnetpp {
 namespace tcp {
 
 bool TcpServer::Launch(const base::EndPoint& local_address,
-                       size_t worker_count,
                        const TcpServerOptions& options) {
-  event_center_ = EventCenter::New(options.name(), worker_count);
+  event_center_ = EventCenter::New(options.name(), options.worker_count());
   assert(event_center_.get());
   if (!event_center_->Launch()) {
     return false;

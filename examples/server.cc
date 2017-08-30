@@ -89,7 +89,7 @@ int main() {
   });
 
   cnetpp::http::HttpServer http_server;
-  if (!http_server.Launch(listen_end_point, options, 1)) {
+  if (!http_server.Launch(listen_end_point, options)) {
     Fatal("Failed to launch http server, exiting...");
   }
 

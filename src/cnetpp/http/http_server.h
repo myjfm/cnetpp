@@ -42,8 +42,7 @@ class HttpServer final : public HttpBase {
 
   // you must first call this method before you do any requests
   bool Launch(const base::EndPoint& local_address,
-              const HttpServerOptions& options,
-              size_t worker_count = 0);
+              const HttpServerOptions& options = HttpServerOptions());
 
  private:
   tcp::TcpServer tcp_server_;

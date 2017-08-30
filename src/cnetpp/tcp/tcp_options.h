@@ -39,14 +39,15 @@ namespace tcp {
 
 class TcpOptions {
  public:
-  TcpOptions()
-      : max_command_queue_len_(1024),
-        tcp_send_buffer_size_(32 * 1024),
-        tcp_receive_buffer_size_(32 * 1024),
-        send_buffer_size_(0),
-        receive_buffer_size_(0) {
-  }
+  TcpOptions() = default;
   virtual ~TcpOptions() = default;
+
+  size_t worker_count() const {
+    return worker_count_;
+  }
+  void set_worker_count(size_t worker_count) {
+    worker_count_ = worker_count;
+  }
 
   size_t max_command_queue_len() const {
     return max_command_queue_len_;
@@ -124,11 +125,12 @@ class TcpOptions {
   }
 
  private:
-  size_t max_command_queue_len_;
-  size_t tcp_send_buffer_size_;
-  size_t tcp_receive_buffer_size_;
-  size_t send_buffer_size_;
-  size_t receive_buffer_size_;
+  size_t worker_count_ { 0 };
+  size_t max_command_queue_len_ { 1024 };
+  size_t tcp_send_buffer_size_ { 32 * 1024 };
+  size_t tcp_receive_buffer_size_ { 32 * 1024 };
+  size_t send_buffer_size_ { 0 };
+  size_t receive_buffer_size_ { 0 };
   ConnectedCallbackType connected_callback_ { nullptr };
   ClosedCallbackType closed_callback_ { nullptr };
   ReceivedCallbackType received_callback_ { nullptr };

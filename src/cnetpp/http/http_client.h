@@ -43,8 +43,10 @@ class HttpClient final : public HttpBase {
   HttpClient() = default;
   ~HttpClient() = default;
 
-  bool Launch(size_t worker_count = 1) {
-    return tcp_client_.Launch("hcli", worker_count);
+  bool Launch(const HttpClientOptions& http_options = HttpClientOptions()) {
+    tcp::TcpClientOptions options;
+    options.set_worker_count(http_options.worker_count());
+    return tcp_client_.Launch("hcli", options);
   }
 
   tcp::ConnectionId Connect(const base::EndPoint* remote,

@@ -40,8 +40,9 @@
 namespace cnetpp {
 namespace tcp {
 
-bool TcpClient::Launch(const std::string& name, size_t worker_count) {
-  event_center_ = EventCenter::New(name, worker_count);
+bool TcpClient::Launch(const std::string& name,
+    const TcpClientOptions& options) {
+  event_center_ = EventCenter::New(name, options.worker_count());
   assert(event_center_.get());
   return event_center_->Launch();
 }
