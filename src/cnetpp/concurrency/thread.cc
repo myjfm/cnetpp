@@ -66,7 +66,11 @@ void Thread::Start() {
   }
 
   thread_ = std::make_unique<std::thread>([this] () {
+#if defined(macintosh) || defined(__APPLE__) || defined(__APPLE_CC__)
+    pthread_setname_np(name_.c_str());
+#else
     pthread_setname_np(pthread_self(), name_.c_str());
+#endif
     (*task_)();
   });
 }
