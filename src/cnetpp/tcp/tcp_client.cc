@@ -28,6 +28,7 @@
 #include <cnetpp/tcp/connection_factory.h>
 #include <cnetpp/base/end_point.h>
 #include <cnetpp/base/socket.h>
+#include <cnetpp/base/log.h>
 
 #include <fcntl.h>
 #include <sys/types.h>
@@ -59,14 +60,57 @@ ConnectionId TcpClient::Connect(const base::EndPoint* remote,
   assert(remote);
 
   base::TcpSocket socket;
-  if (!socket.Create() ||
-      !socket.SetCloexec() ||
-      !socket.SetBlocking(false) ||
-      !socket.SetTcpNoDelay() ||
-      !socket.SetKeepAlive() ||
-      !socket.SetSendBufferSize(options.tcp_send_buffer_size()) ||
-      !socket.SetReceiveBufferSize(options.tcp_receive_buffer_size()) ||
-      !socket.Connect(*remote)) {
+  if (!socket.Create()) {
+    CnetppError("Failed to create socket, Error: %s",
+                cnetpp::concurrency::ThisThread::GetLastErrorString().c_str());
+    return kInvalidConnectionId;
+  }
+  if (!socket.SetCloexec(true)) {
+    CnetppError("Failed to set cloexec, Error: %s",
+                cnetpp::concurrency::ThisThread::GetLastErrorString().c_str());
+    return kInvalidConnectionId;
+  }
+  if (!socket.SetBlocking(false)) {
+    CnetppError("Failed to set blocking to false, Error: %s",
+                cnetpp::concurrency::ThisThread::GetLastErrorString().c_str());
+    return kInvalidConnectionId;
+  }
+  if (!socket.SetTcpNoDelay(true)) {
+    CnetppError("Failed to set tcp no delay, Error: %s",
+                cnetpp::concurrency::ThisThread::GetLastErrorString().c_str());
+    return kInvalidConnectionId;
+  }
+  if (!socket.SetTcpKeepAliveOption(60, 3, 20)) {
+    CnetppError("Failed to set tcp keepalive option, Error: %s",
+                cnetpp::concurrency::ThisThread::GetLastErrorString().c_str());
+    return kInvalidConnectionId;
+  }
+  if (!socket.SetTcpUserTimeout()) {
+    CnetppError("Failed to set tcp user timeout, Error: %s",
+                cnetpp::concurrency::ThisThread::GetLastErrorString().c_str());
+    return kInvalidConnectionId;
+  }
+  if (!socket.SetLinger()) {
+    CnetppError("Failed to set linger, Error: %s",
+                cnetpp::concurrency::ThisThread::GetLastErrorString().c_str());
+    return kInvalidConnectionId;
+  }
+#ifdef SO_NOSIGPIPE
+  int one = 0;
+  if (!socket.SetOption(SOL_SOCKET, SO_NOSIGPIPE, &one, sizeof(one))) {
+    CnetppError("Failed to set SO_NOSIGPIPE, Error: %s",
+                cnetpp::concurrency::ThisThread::GetLastErrorString().c_str());
+    return kInvalidConnectionId;
+  }
+#endif
+
+  CnetppDebug("[Socket 0X%08x] try to connect remote server %s ...",
+              socket.fd(), remote->ToString().c_str());
+  auto connect_status = socket.Connect(*remote);
+  if (connect_status == -1) {
+    CnetppError("Failed to connect to remote server: %s, Error: %s",
+                remote->ToString().c_str(),
+                cnetpp::concurrency::ThisThread::GetLastErrorString().c_str());
     return kInvalidConnectionId;
   }
 
@@ -87,6 +131,8 @@ ConnectionId TcpClient::Connect(const base::EndPoint* remote,
   contexts_[connection->id()] = cc;
   guard.unlock();
 
+  CnetppDebug("[Socket 0X%08x] <-> [TcpConnection 0X%08x]",
+              socket.fd(), tcp_connection->id());
   tcp_connection->set_connected_callback(
       [this] (std::shared_ptr<TcpConnection> c) -> bool {
         return this->OnConnected(c);
@@ -110,8 +156,17 @@ ConnectionId TcpClient::Connect(const base::EndPoint* remote,
 
   socket.Detach();
 
-  event_center_->AddCommand(
-      Command(static_cast<int>(Command::Type::kAddConn), connection), true);
+  if (connect_status == 0) {
+    event_center_->AddCommand(
+        Command(static_cast<int>(Command::Type::kAddConnectingConn) |
+          static_cast<int>(Command::Type::kWriteable), connection),
+        true);
+  } else {
+    event_center_->AddCommand(
+        Command(static_cast<int>(Command::Type::kAddConnectedConn),
+                connection),
+        true);
+  }
   return connection->id();
 }
 

@@ -42,14 +42,9 @@ namespace concurrency {
 int ThisThread::GetId() {
   static thread_local pid_t tid = 0;
   if (tid == 0) {
-#if defined(linux) || defined(__linux) || defined(__linux__) || \
-    defined(macintosh) || defined(__APPLE__) || defined(__APPLE_CC__)
+#if defined(linux) || defined(__linux) || defined(__linux__)
   #ifndef __NR_gettid
-    #if defined(macintosh) || defined(__APPLE__) || defined(__APPLE_CC__)
-      #define __NR_gettid SYS_gettid
-    #else
-      #define __NR_gettid 224
-    #endif
+    #define __NR_gettid 224
   #endif
     tid = syscall(__NR_gettid);
 #endif
@@ -75,11 +70,19 @@ void ThisThread::SetLastError(int err) {
 }
 
 std::string ThisThread::GetLastErrorString() {
-  return strerror(errno);
+  char buffer[256];
+  if (strerror_r(errno, buffer, 256) != 0) {
+    return "Unknown errno: " + std::to_string(errno);
+  }
+  return buffer;
 }
 
 std::string ThisThread::GetErrorString(int err) {
-  return strerror(err);
+  char buffer[256];
+  if (strerror_r(err, buffer, 256) != 0) {
+    return "Unknown errno: " + std::to_string(err);
+  }
+  return buffer;
 }
 
 }  // namespace concurrency

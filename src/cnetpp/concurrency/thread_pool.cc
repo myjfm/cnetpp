@@ -64,7 +64,7 @@ ThreadPool::ThreadPool(const std::string& name,
 void ThreadPool::Start() {
   Status old = Status::kInit;
   if (!status_.compare_exchange_strong(old, Status::kRunning)) {
-    Fatal("Failed to start thread pool, invalid thread status: %d",
+    CnetppFatal("Failed to start thread pool, invalid thread status: %d",
         static_cast<int>(old));
   }
 
@@ -72,17 +72,18 @@ void ThreadPool::Start() {
   for (auto& t: threads_) {
     t = std::make_unique<Thread>([this] () -> bool { DoTask(); return true; },
         name_ + "-" + std::to_string(nr));
+    t->SetThreadPoolIndex(nr);
     t->Start();
-    Info("Thread %s-%d started.", name_.c_str(), nr);
     nr++;
   }
+  CnetppInfo("Thread %s [%d ~ %d] started.", name_.c_str(), 0, nr - 1);
 
   if (enable_delay_) {
     delay_queue_ = std::make_unique<DelayQueue>();
     delay_thread_ = std::make_unique<Thread>(
         [this] () -> bool { PollDelayTask(); return true; }, name_ + "-d");
     delay_thread_->Start();
-    Info("Delay thread %s-d started.", name_.c_str());
+    CnetppInfo("Delay thread %s-d started.", name_.c_str());
   }
 }
 
@@ -104,24 +105,31 @@ void ThreadPool::Stop(bool wait) {
 
   if (enable_delay_) {
     delay_thread_->Stop();
-    Info("Delay thread %s stopped.", delay_thread_->name().c_str());
+    CnetppInfo("Delay thread %s stopped.", delay_thread_->name().c_str());
   }
 
   for (auto& t : threads_) {
     t->Stop();
-    Info("Thread %s stopped.", t->name().c_str());
   }
+  CnetppInfo("Thread %s [%d ~ %d] stopped.",
+             name_.c_str(),
+             0,
+             threads_.size() - 1);
+}
+
+size_t ThreadPool::PendingCount() const {
+  return queue_->size();
 }
 
 bool ThreadPool::AddTask(std::shared_ptr<Task> task) {
   if (status_.load(std::memory_order_acquire) != Status::kRunning) {
-    Error("Thread pool is not running.");
+    CnetppError("Thread pool is not running.");
     return false;
   }
 
   std::lock_guard<std::mutex> guard(mutex_);
   if (stopping_.load(std::memory_order_acquire)) {
-    Error("Adding a task in a stopped thread pool.");
+    CnetppError("Adding a task in a stopped thread pool.");
     return false;
   }
   size_t pending_tasks = queue_->size();
@@ -129,10 +137,11 @@ bool ThreadPool::AddTask(std::shared_ptr<Task> task) {
     pending_tasks += delay_queue_->size();
   }
   if (max_num_pending_tasks_ > 0 && pending_tasks >= max_num_pending_tasks_) {
-    Error("Queue is full.");
+    CnetppError("Queue is full.");
     return false;
   }
   auto r = queue_->Push(task);
+  (void) r;
   assert(r);
   queue_cv_.notify_one();
   return true;
@@ -166,28 +175,29 @@ bool ThreadPool::AddTask(const std::function<bool()>& closure) {
 bool ThreadPool::AddDelayTask(std::shared_ptr<Task> task,
     std::chrono::microseconds delay) {
   if (status_.load(std::memory_order_acquire) != Status::kRunning) {
-    Error("Thread pool is not running.");
+    CnetppError("Thread pool is not running.");
     return false;
   }
 
   if (!enable_delay_) {
-    Error("The enable_delay option is turned off!");
+    CnetppError("The enable_delay option is turned off!");
     return false;
   }
   std::lock_guard<std::mutex> guard(mutex_);
   if (stopping_.load(std::memory_order_acquire)) {
-    Error("Adding a task in a stopped thread pool.");
+    CnetppError("Adding a task in a stopped thread pool.");
     return false;
   }
 
   if (max_num_pending_tasks_ > 0 &&
       delay_queue_->size() + queue_->size() >= max_num_pending_tasks_) {
-    Error("Delay queue is full.");
+    CnetppError("Delay queue is full.");
     return false;
   }
 
   auto r = delay_queue_->Push(
       std::static_pointer_cast<Task>(std::make_shared<DelayTask>(task, delay)));
+  (void) r;
   assert(r);
   delay_queue_cv_.notify_one();
   return true;
@@ -220,10 +230,12 @@ void ThreadPool::DoTask() {
         }
         continue;
       }
+      num_running_tasks_++;
     }
 
     // do task
     (*(task.get()))();
+    num_running_tasks_--;
   }
 }
 
@@ -231,7 +243,7 @@ void ThreadPool::PollDelayTask() {
   assert(enable_delay_);
   while (true) {
     if (stopping_ && force_stop_) {
-      Info("Forcing stop delay thread: %s-d, exit...", name_.c_str());
+      CnetppInfo("Forcing stop delay thread: %s-d, exit...", name_.c_str());
       return;
     }
 
@@ -251,6 +263,7 @@ void ThreadPool::PollDelayTask() {
         } else {
           // some task is expired
           auto r = queue_->Push(std::static_pointer_cast<Task>(task));
+          (void) r;
           assert(r);
           auto t = delay_queue_->TryPop();
           assert(t == std::static_pointer_cast<Task>(task));
@@ -258,7 +271,7 @@ void ThreadPool::PollDelayTask() {
         }
       } else {
         if (stopping_) {
-          Info("Stopping delay thread: %s-d, exit...", name_.c_str());
+          CnetppInfo("Stopping delay thread: %s-d, exit...", name_.c_str());
           return;
         }
         // delay queue is empty

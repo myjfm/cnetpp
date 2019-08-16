@@ -34,6 +34,7 @@
 #include <sys/socket.h>
 #include <netinet/tcp.h>
 #include <netinet/in.h>
+#include <cnetpp/base/log.h>
 
 namespace cnetpp {
 namespace tcp {
@@ -49,15 +50,26 @@ bool TcpServer::Launch(const base::EndPoint& local_address,
   // create listen socket
   base::ListenSocket listen_socket(local_address);
   if (!listen_socket.IsValid()) {
+    CnetppInfo("[TcpServer 0X%08x] create listen socket failed in addr %s",
+               this, local_address.ToString().c_str());
     return false;
   }
 
+  CnetppDebug("[TcpServer 0X%08x] create listen socket [0X%08x] in addr %s",
+              this, listen_socket.fd(), local_address.ToString().c_str());
+
+  int one = 0; (void) one;
   if (!listen_socket.SetCloexec(true) ||
       !listen_socket.SetBlocking(false) ||
+#if 0
       !listen_socket.SetReceiveBufferSize(options.tcp_receive_buffer_size()) ||
       !listen_socket.SetSendBufferSize(options.tcp_send_buffer_size()) ||
+#endif
       !listen_socket.SetReuseAddress(true) ||
-      !listen_socket.Listen()) {
+#ifdef SO_NOSIGPIPE
+      !listen_socket.SetOption(SOL_SOCKET, SO_NOSIGPIPE, &one, sizeof(one)) ||
+#endif
+      !listen_socket.Listen(options.backlog())) {
     return false;
   }
 
@@ -69,8 +81,11 @@ bool TcpServer::Launch(const base::EndPoint& local_address,
   auto listener = std::static_pointer_cast<ListenConnection>(connection);
   listener->set_tcp_server_options(options);
 
+  CnetppDebug("[TcpServer 0X%08x] bind listen socket [0X%08x] "
+              "with [ListenConnection 0X%08x]",
+              this, listen_socket.fd(), connection->id());
   // add the listen fd onto multiplexer
-  Command cmd(static_cast<int>(Command::Type::kAddConn),
+  Command cmd(static_cast<int>(Command::Type::kAddConnectedConn),
               std::static_pointer_cast<ConnectionBase>(listener));
   event_center_->AddCommand(cmd, true);
 

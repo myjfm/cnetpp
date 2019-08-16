@@ -34,11 +34,24 @@
 #include <chrono>
 #include <memory>
 
+
+
+#include <execinfo.h> // for backtrace
+#include <dlfcn.h>    // for dladdr
+#include <cxxabi.h>   // for __cxa_demangle
+
+#include <cstdio>
+#include <cstdlib>
+#include <string>
+#include <sstream>
+
 namespace cnetpp {
 namespace base {
 
 Log LOG;
+void Log::DefaultEmptyFunc(Level level, const char* msg) {
 
+}
 void Log::DefaultFunc(Level level, const char* msg) {
   char str_time[22];
   int time_len = FormatTime(str_time, 22);
@@ -96,16 +109,60 @@ void Log::VPrintf(Level level, const char* fmt, va_list ap) {
   static const int kStackBufferSize = 256;
   char stack_buf[kStackBufferSize];
 
+  va_list dups_ap;
+  va_copy(dups_ap, ap);
   int need = vsnprintf(stack_buf, kStackBufferSize, fmt, ap);
   if (need < kStackBufferSize) {
     func_(level, stack_buf);
   } else {
     std::unique_ptr<char[]> heap_buf(new char[need + 1]);
-    int rval = vsnprintf(heap_buf.get(), need + 1, fmt, ap);
+    int rval = vsnprintf(heap_buf.get(), need + 1, fmt, dups_ap);
     if (rval != -1) {
       func_(level, heap_buf.get());
     }
   }
+  va_end(dups_ap);
+}
+
+
+// This function produces a stack backtrace with demangled function and
+// method names.
+std::string BacktraceString(int skip)
+{
+  void *callstack[128];
+  const int max_frames = sizeof(callstack) / sizeof(callstack[0]);
+  char buf[1024];
+  int n_frames = backtrace(callstack, max_frames);
+  char **symbols = backtrace_symbols(callstack, n_frames);
+
+  std::ostringstream trace_buf;
+  for (int i = skip; i < n_frames; i++) {
+    printf("%s\n", symbols[i]);
+
+    Dl_info info;
+    if (dladdr(callstack[i], &info) && info.dli_sname) {
+      char *demangled = nullptr;
+      int status = -1;
+      if (info.dli_sname[0] == '_') {
+        demangled = abi::__cxa_demangle(info.dli_sname, nullptr, 0, &status);
+      }
+      snprintf(buf, sizeof(buf), "%-3d %*p %s + %zd\n",
+               i, int(2 + sizeof(void*) * 2), callstack[i],
+               status == 0 ? demangled :
+               info.dli_sname == 0 ? symbols[i] : info.dli_sname,
+               (char *)callstack[i] - (char *)info.dli_saddr);
+      free(demangled);
+    } else {
+      snprintf(buf, sizeof(buf), "%-3d %*p %s\n",
+               i, int(2 + sizeof(void*) * 2), callstack[i], symbols[i]);
+    }
+    trace_buf << buf;
+  }
+  free(symbols);
+  if (n_frames == max_frames) {
+    trace_buf << "[truncated]\n";
+  }
+  return trace_buf.str();
 }
 
 }  // namespace base

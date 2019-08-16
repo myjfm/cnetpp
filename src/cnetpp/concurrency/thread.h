@@ -63,7 +63,7 @@ public:
   Status GetStatus() const noexcept {
     return status_.load(std::memory_order_acquire);
   }
-  
+
   void Start();
 
   void Stop();
@@ -75,14 +75,23 @@ public:
   Id GetId() const noexcept {
     return thread_->get_id();
   }
-  
+
   void Join();
-  
+
   // check whether this thread is joinable
   bool IsJoinable() const noexcept {
     return thread_->joinable();
   }
 
+  void SetThreadPoolIndex(int index);
+  // index in thread pool, if not belong to any thread pool,
+  // below will return -1
+  int ThreadPoolIndex() const;
+  int ThreadIndex() const;
+  // current allocated max threads
+  static int MaxThreadIndex();
+  // use below method in thread, otherwise will return nullptr
+  static const Thread* ThisThread();
  private:
   class InternalTask : public Task {
    public:
@@ -100,6 +109,9 @@ public:
     std::function<bool()> closure_;
   };
 
+  int thread_index_;
+  int thread_pool_index_;
+
   std::string name_;
 
   std::shared_ptr<Task> task_;
@@ -107,6 +119,8 @@ public:
   std::unique_ptr<std::thread> thread_;
 
   std::atomic<Status> status_ { Status::kInit };
+ private:
+  static std::atomic<int> cnetpp_max_thread_index_;
 };
 
 }  // namespace concurrency

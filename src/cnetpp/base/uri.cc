@@ -47,7 +47,7 @@ const std::regex Uri::kAuthorityRegex(
                                   // dotted-IPv4, or named host)
     "(?::(\\d*))?"); // port
 
-const std::regex Uri::kQueryParamRegex("(^|&)([^=&]*)=?([^=&]*)(?=(&|$))");
+const std::regex Uri::kQueryParamRegex("(^|&)([^=&]*)=?([^&]*)(?=(&|$))");
 
 static const std::unordered_map<std::string, uint16_t> kSchemeToPortMap = 
 {
@@ -72,7 +72,7 @@ bool Uri::Parse(const std::string& str_uri) {
   }
 
   auto &sub_match = match[1];
-  scheme_ = std::move(std::string(sub_match.first, sub_match.second));
+  scheme_ = std::string(sub_match.first, sub_match.second);
   scheme_ = StringUtils::ToLower(scheme_);
 
   auto &authority_and_path = match[2];
@@ -129,9 +129,14 @@ bool Uri::Parse(const std::string& str_uri) {
     }
   }
 
-  fragment_ = std::move(std::string(match[4].first, match[4].second));
+  fragment_ = std::string(match[4].first, match[4].second);
   valid_ = true;
   return true;
+}
+
+bool Uri::ParseUriPath(const std::string& path, bool decoded) {
+  return Parse("http://0.0.0.0" +
+      (decoded ? path : StringUtils::UnEscape(path)));
 }
 
 std::string Uri::String() const {
@@ -166,7 +171,7 @@ std::string Uri::String() const {
     str_uri.append(fragment_);
   }
 
-  return std::move(str_uri);
+  return str_uri;
 }
 
 std::string Uri::Authority() const {
@@ -196,14 +201,14 @@ std::string Uri::Authority() const {
     res.append(port_str_);
   }
 
-  return std::move(res);
+  return res;
 }
 
 std::string Uri::Hostname() const {
   if (host_.size() > 0 && host_[0] == '[') {
     // If it starts with '[', then it should end with ']',
     // this is ensured by regex 
-    return std::move(host_.substr(1, host_.size() - 2));
+    return host_.substr(1, host_.size() - 2);
   }
   return host_;
 }

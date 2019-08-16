@@ -12,7 +12,7 @@ TEST(ThreadPool, Test01) {
   auto tp = std::make_shared<cnetpp::concurrency::ThreadPool>("Test01", true);
   tp->set_num_threads(200);
   tp->Start();
-  ASSERT_EQ(tp->size(), 200);
+  ASSERT_EQ(tp->size(), static_cast<size_t>(200));
   std::atomic<int> i { 0 };
   auto closure = [&i] () -> bool { i++; return true; };
   for (int j = 0; j < 400; ++j) {
@@ -33,7 +33,7 @@ TEST(ThreadPool, TestMaxPendingTasks) {
   tp->set_num_threads(2);
   tp->set_max_num_pending_tasks(4);
   tp->Start();
-  ASSERT_EQ(tp->size(), 2);
+  ASSERT_EQ(tp->size(), static_cast<size_t>(2));
   std::atomic<int> i { 0 };
   auto closure = [&i] () -> bool {
     i++;
@@ -72,7 +72,7 @@ TEST(ThreadPool, TestStopImmediately) {
   auto tp = std::make_shared<cnetpp::concurrency::ThreadPool>("Test01", true);
   tp->set_num_threads(2);
   tp->Start();
-  ASSERT_EQ(tp->size(), 2);
+  ASSERT_EQ(tp->size(), static_cast<size_t>(2));
   std::atomic<int> i { 0 };
   auto closure = [&i] () -> bool {
     i++;
@@ -96,7 +96,7 @@ TEST(ThreadPool, TestDelayTask) {
   auto tp = std::make_shared<cnetpp::concurrency::ThreadPool>("Test01", true);
   tp->set_num_threads(2);
   tp->Start();
-  ASSERT_EQ(tp->size(), 2);
+  ASSERT_EQ(tp->size(), static_cast<size_t>(2));
   std::atomic<int> i { 0 };
   std::atomic<int> j { 0 };
   auto closure1 = [&i] () -> bool {
@@ -121,3 +121,32 @@ TEST(ThreadPool, TestDelayTask) {
   //tp->Stop();
 }
 
+TEST(ThreadPool, TestOnlyDelayTask) {
+  auto tp = std::make_shared<cnetpp::concurrency::ThreadPool>("Test01", true);
+  tp->set_num_threads(0);
+  tp->Start();
+  // at least one thread num
+  ASSERT_EQ(tp->size(), static_cast<size_t>(1));
+  std::atomic<int> i { 0 };
+  std::atomic<int> j { 0 };
+  auto closure1 = [&i] () -> bool {
+    i++;
+    return true;
+  };
+  auto closure2 = [&j] () -> bool {
+    j++;
+    return true;
+  };
+  ASSERT_TRUE(tp->AddDelayTask(closure1, std::chrono::milliseconds(10)));
+  ASSERT_TRUE(tp->AddDelayTask(closure2, std::chrono::milliseconds(20)));
+  std::this_thread::sleep_for(std::chrono::milliseconds(5));
+  EXPECT_EQ(i, 0);
+  EXPECT_EQ(j, 0);
+  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  EXPECT_EQ(i, 1);
+  EXPECT_EQ(j, 0);
+  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  EXPECT_EQ(i, 1);
+  EXPECT_EQ(j, 1);
+  //tp->Stop();
+}

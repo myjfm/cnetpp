@@ -57,6 +57,7 @@ class EndPoint final {
 
   EndPoint(const struct sockaddr& address, socklen_t address_length) {
     bool res = FromSockAddr(address, address_length);
+    (void) res;
     assert(res);
   }
 
@@ -88,13 +89,17 @@ class EndPoint final {
   bool FromSockAddr(const struct sockaddr& address,
                     socklen_t address_len);
 
-  std::string ToString() const {
+  std::string ToString(bool colon_delimited = true) const {
     std::string res;
     res.reserve(64);
     res.append(address_.ToString());
-    res.append(1, ',');
+    if (colon_delimited) {
+      res.append(1, ':');
+    } else {
+      res.append(1, ',');
+    }
     res.append(std::to_string(static_cast<unsigned>(port_)));
-    return std::move(res);
+    return res;
   }
 
   std::string ToStringWithoutPort() const {

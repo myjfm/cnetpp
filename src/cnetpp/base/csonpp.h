@@ -46,7 +46,7 @@ class Object {
   typedef std::map<std::string, Value> MapType;
   typedef MapType::const_iterator ConstIterator;
   typedef MapType::iterator Iterator;
-  
+
   friend bool operator==(const Object& left, const Object& right);
   friend bool operator!=(const Object& left, const Object& right);
   friend bool operator>(const Object& left, const Object& right);
@@ -60,7 +60,7 @@ class Object {
 
   Object& operator=(const Object& other);
   Object& operator=(Object&& other);
-  
+
   // find element matching key, or insert with default Value
   Value& operator[](const std::string& key);
   // find element matching key, or insert with default Value
@@ -74,14 +74,14 @@ class Object {
 
   Iterator Begin();
   Iterator End();
-  
+
   Iterator Find(const std::string& key);
   ConstIterator Find(const std::string& key) const;
-  
+
   void Clear();
 
   size_t Size() const;
-  
+
  private:
   MapType value_;
 };
@@ -91,14 +91,14 @@ class Array {
   typedef std::vector<Value> VectorType;
   typedef VectorType::const_iterator ConstIterator;
   typedef VectorType::iterator Iterator;
-  
+
   friend bool operator==(const Array& left, const Array& right);
   friend bool operator!=(const Array& left, const Array& right);
   friend bool operator>(const Array& left, const Array& right);
   friend bool operator<(const Array& left, const Array& right);
   friend bool operator>=(const Array& left, const Array& right);
   friend bool operator<=(const Array& left, const Array& right);
-  
+
   Array() = default;
 
   Array(const Array& array) ;
@@ -106,7 +106,7 @@ class Array {
 
   Array& operator=(const Array& array);
   Array& operator=(Array&& array);
-  
+
   // the element must exist
   Value& operator[](size_t index);
   // the element must exist
@@ -130,7 +130,7 @@ class Array {
   void Clear();
 
   size_t Size() const;
-  
+
  private:
   VectorType value_;
 };
@@ -271,7 +271,7 @@ class Value {
   const Value& operator[](size_t index) const;
   Value& operator[](const std::string& key);
   Value& operator[](std::string&& key);
-  
+
  private:
   ValueType type_;
 
@@ -292,7 +292,7 @@ class Parser {
   static Value Deserialize(const std::string& str) {
     Value value;
     Deserialize(str, &value);
-    return std::move(value);
+    return value;
   }
 
   static void Serialize(const Value& value, std::string* str);
@@ -300,7 +300,7 @@ class Parser {
   static std::string Serialize(const Value& value) {
     std::string str;
     Serialize(value, &str);
-    return std::move(str);
+    return str;
   }
 };
 

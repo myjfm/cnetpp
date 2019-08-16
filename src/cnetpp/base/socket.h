@@ -164,6 +164,15 @@ class Socket {
     return SetOption<size_t, int>(SOL_SOCKET, SO_RCVBUF, size);
   }
 
+  bool SetTcpUserTimeout(int milliseconds = 60000) {
+#if __linux__
+    return SetOption<int, unsigned int>(IPPROTO_TCP,
+                                        TCP_USER_TIMEOUT,
+                                        milliseconds);
+#endif
+    return true;
+  }
+
   bool SetSendTimeout(const timeval& tv) {
     return SetOption(SOL_SOCKET, SO_SNDTIMEO, tv);
   }
@@ -215,9 +224,9 @@ class Socket {
   bool SetTcpKeepAliveOption(int idle, int interval, int count) {
 #if __linux__
     return SetOption(SOL_SOCKET, SO_KEEPALIVE, 1) &&
-           SetOption(SOL_TCP, TCP_KEEPIDLE, idle) &&
-           SetOption(SOL_TCP, TCP_KEEPINTVL, interval) &&
-           SetOption(SOL_TCP, TCP_KEEPCNT, count);
+           SetOption(IPPROTO_TCP, TCP_KEEPIDLE, idle) &&
+           SetOption(IPPROTO_TCP, TCP_KEEPINTVL, interval) &&
+           SetOption(IPPROTO_TCP, TCP_KEEPCNT, count);
 #elif __APPLE__
     return SetOption(SOL_SOCKET, SO_KEEPALIVE, 1);
 #endif
@@ -303,7 +312,10 @@ class DataSocket : public Socket {
   DataSocket() {}
  
  public:
-  bool Connect(const EndPoint& end_point);
+  // -1 means error occured
+  // 0 means we are connecting
+  // 1 means connected
+  int Connect(const EndPoint& end_point);
 
   // Send data
   bool Send(const void* buffer,

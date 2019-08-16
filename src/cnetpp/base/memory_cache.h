@@ -24,85 +24,74 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 //
-#ifndef CNETPP_HTTP_HTTP_REQUEST_H_
-#define CNETPP_HTTP_HTTP_REQUEST_H_
+#ifndef CNETPP_BASE_MEMORY_CACHE_H_
+#define CNETPP_BASE_MEMORY_CACHE_H_
 
-#include <cnetpp/http/http_packet.h>
-
-#include <algorithm>
-#include <string>
+#include <stdint.h>
+#include <mutex>
+#include <condition_variable>
+#include <atomic>
+#include <deque>
+#include <vector>
+#include <pthread.h>
 
 namespace cnetpp {
-namespace http {
+namespace base {
 
-// Describes a http request.
-class HttpRequest final : public HttpPacket {
+class MemoryCacheTLS;
+
+typedef struct MemoryCacheHead {
+  MemoryCacheHead() : head_(nullptr) {}
+  std::mutex      mtx_;
+  MemoryCacheTLS* head_;
+} MemoryCacheHead;
+
+class MemoryCache {
  public:
-  enum class MethodType {
-    kUnknown = -1,
-    kHead,
-    kGet,
-    kPost,
-    kPut,
-    kDelete,
-    kOptions,
-    kTrace,
-    kConnect,
-    kLastField,
-  };
+  using Stats =
+    std::deque<std::vector<std::tuple<uint32_t, uint32_t, uint64_t>>>;
 
-  static MethodType GetMethodByName(const char* method_name);
-  static const char* GetMethodName(MethodType method);
+  static MemoryCache* Instance();
 
-  HttpRequest() : method_(MethodType::kUnknown), uri_("/") {
+  ~MemoryCache();
+
+  void* Allocate(uint32_t n);
+  void Deallocate(void* ptr);
+  void* Recycle(void* ptr, uint32_t* len);
+
+  void max_cache_normal(uint32_t n) {
+    max_cache_normal_ = n;
   }
-  ~HttpRequest() {
+  uint32_t max_cache_normal() const {
+    return max_cache_normal_;
   }
 
-  virtual void Reset();
-
-  MethodType method() const {
-    return method_;
+  void max_cache_large(uint32_t n) {
+    max_cache_large_ = n;
   }
-  void set_method(MethodType method) {
-    method_ = method;
+  uint32_t max_cache_large() const {
+    return max_cache_large_;
   }
 
-  const std::string& uri() const {
-    return uri_;
-  }
-  void set_uri(base::StringPiece uri) {
-    uri_ = uri.as_string();
-  }
-
-  void Swap(HttpRequest* that) {
-    HttpPacket::Swap(that);
-    using std::swap;
-    swap(method_, that->method_);
-    swap(uri_, that->uri_);
-  }
+  void EnsureHasMemoryCacheTLS();
+  MemoryCache::Stats GetStats() const;
 
  private:
-  virtual void AppendStartLineToString(std::string* result) const;
-  virtual bool ParseStartLine(base::StringPiece data, ErrorType* error = NULL);
+  MemoryCache();
 
-  MethodType method_;
-  std::string uri_;
+  static void PrepareCleanupTLSAtThreadExit();
+  static void CleanupAtThreadExit(void* argv __attribute__((unused)));
+  static void CleanupAtMainExit();
+  static void CleanupMemoryCacheTLS(MemoryCacheTLS* pool);
+
+  static uint32_t  max_cache_normal_;
+  static uint32_t  max_cache_large_;
+  static pthread_key_t            tls_key_;
+  static MemoryCacheHead          h_;
+  static __thread MemoryCacheTLS* pool_;
 };
 
-}  // namespace http
+}  // namespace base
 }  // namespace cnetpp
 
-// adapt to std::swap
-namespace std {
-
-template <>
-inline void swap(cnetpp::http::HttpRequest& left,
-                 cnetpp::http::HttpRequest& right) {
-    left.Swap(&right);
-}
-
-}  // namespace std
-
-#endif  // CNETPP_HTTP_HTTP_REQUEST_H_
-
+#endif  // CNETPP_BASE_MEMORY_CACHE_H_

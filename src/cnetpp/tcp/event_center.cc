@@ -65,9 +65,11 @@ bool EventCenter::Launch() {
   for (size_t i = 0; i < internal_event_poller_infos_.size(); ++i) {
     if (!internal_event_poller_infos_[i]->event_poller_->Init(
           shared_from_this())) {
-      Fatal("Failed to initialize EventPoller.");
+      CnetppFatal("Failed to initialize EventPoller in "
+                  "[EventCenter 0X%08x, %s].", this, name_.c_str());
     }
-    Info("EventPoller %d initialized.", i);
+    CnetppInfo("EventPoller %d initialized in "
+               "[EventCenter 0X%08x, %s].", i, this, name_.c_str());
     std::shared_ptr<concurrency::Task> task(
         new InternalEventTask(shared_from_this(),
                               internal_event_poller_infos_[i]->event_poller_));
@@ -81,6 +83,8 @@ bool EventCenter::Launch() {
 }
 
 void EventCenter::Shutdown() {
+  CnetppInfo("[EventCenter 0X%08x, %s] is closed, all poller "
+             "in this center will be closed", this, name_.c_str());
   for (auto& poller_info : internal_event_poller_infos_) {
     poller_info->event_poller_thread_->Stop();
   }
@@ -88,6 +92,12 @@ void EventCenter::Shutdown() {
 }
 
 void EventCenter::AddCommand(const Command& command, bool async) {
+  CnetppDebug("[EventCenter 0X%08x, %s] add command [type %s] for"
+              " [Socket 0X%08x] [%s 0X%08X], async %d",
+              this, name_.c_str(), command.TypeString().c_str(),
+              command.connection()->socket().fd(),
+              command.connection()->ToName().c_str(),
+              command.connection()->id(), async);
   int id = command.connection()->id() % internal_event_poller_infos_.size();
 
   auto& info = internal_event_poller_infos_[id];
@@ -130,11 +140,18 @@ bool EventCenter::ProcessAllPendingCommands(size_t id) {
 void EventCenter::ProcessPendingCommand(InternalEventPollerInfoPtr info,
     const Command& command) {
   if (info->event_poller_->ProcessCommand(command)) {
-    if (command.type() & static_cast<int>(Command::Type::kAddConn)) {
+    if (command.type() & static_cast<int>(Command::Type::kAddConnectingConn)) {
       info->connections_[command.connection()->socket().fd()] =
         command.connection();
       command.connection()->set_ep_thread_id();
-      command.connection()->HandleReadableEvent(this);
+    } else if (
+        command.type() & static_cast<int>(Command::Type::kAddConnectedConn)) {
+      info->connections_[command.connection()->socket().fd()] =
+        command.connection();
+      command.connection()->set_ep_thread_id();
+      //when listen socket is added into epoll for the first time,
+      // it use kAddConnectedConn, but it should not call HandleReadableEvent.
+      //command.connection()->HandleReadableEvent(this);
     } else if (command.type() &
         static_cast<int>(Command::Type::kRemoveConnImmediately)) {
       (info->connections_).erase(command.connection()->socket().fd());
@@ -144,6 +161,12 @@ void EventCenter::ProcessPendingCommand(InternalEventPollerInfoPtr info,
       command.connection()->set_state(ConnectionBase::State::kClosing);
       command.connection()->HandleWriteableEvent(this);
     }
+  } else {
+    CnetppInfo("[EventCenter 0X%08x, %s] process command failed "
+               "[type %s] for connection [%s 0X%08X]", this, name_.c_str(),
+               command.TypeString().c_str(),
+               command.connection()->ToName().c_str(),
+               command.connection()->id());
   }
 }
 

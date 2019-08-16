@@ -131,6 +131,8 @@ class StringUtils {
   // if you don't care, just let it as default
   static int64_t HexStrToInteger(StringPiece str, bool* success = nullptr);
 
+  static std::string UnEscape(const std::string &url);
+
   // change all the charactors that is not the uri charactor to escape format
   // inplace function
   static void Escape(std::string* str);

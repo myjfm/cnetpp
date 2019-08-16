@@ -41,7 +41,7 @@ namespace tcp {
 bool EpollEventPollerImpl::DoInit() {
   epoll_fd_ = ::epoll_create1(EPOLL_CLOEXEC);
   if (epoll_fd_ < 0) {
-    Error("epoll_create1() failed. erro message: %s",
+    CnetppError("epoll_create1() failed. erro message: %s",
         concurrency::ThisThread::GetErrorString(
           concurrency::ThisThread::GetLastError()).c_str());
     return false;
@@ -79,6 +79,7 @@ bool EpollEventPollerImpl::Poll() {
       Event event(fd);
       if (epoll_events_[i].events & (EPOLLHUP | EPOLLERR)) {
         event.mutable_mask() |= static_cast<int>(Event::Type::kClose);
+        CnetppDebug("epoll receive error events:%d", epoll_events_[i].events);
       } else {
         if (epoll_events_[i].events & (EPOLLIN | EPOLLRDBAND | EPOLLRDNORM)) {
           event.mutable_mask() |= static_cast<int>(Event::Type::kRead);

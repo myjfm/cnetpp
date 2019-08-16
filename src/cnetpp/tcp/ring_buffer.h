@@ -28,12 +28,14 @@
 #define CNETPP_TCP_RING_BUFFER_H_
 
 #include <cnetpp/base/string_piece.h>
+#include <cnetpp/base/memory_cache.h>
 
 #include <sys/uio.h>
 #include <string.h>
 
 #include <string>
 #include <vector>
+#include <atomic>
 
 namespace cnetpp {
 namespace tcp {
@@ -44,16 +46,18 @@ namespace tcp {
 class RingBuffer {
  public:
   explicit RingBuffer(size_t buffer_size)
-      : buffer_(new char[buffer_size]),
+      : buffer_((char *)base::MemoryCache::Instance()->Allocate(buffer_size)),
         begin_(0),
         end_(0),
         size_(0),
         capacity_(buffer_size) {
+    UpdateMemoryUsed(0, capacity_);
     assert(buffer_);
   }
   ~RingBuffer() {
     if (buffer_) {
-      delete [] buffer_;
+      UpdateMemoryUsed(capacity_, 0);
+      base::MemoryCache::Instance()->Deallocate(buffer_);
     }
   }
 
@@ -64,6 +68,9 @@ class RingBuffer {
   size_t Size() {
     return size_;
   }
+
+  // try to reduce memory usage
+  void Recycle();
 
   // if new_size is less than size_, resize will fail
   bool Resize(size_t new_size);
@@ -129,6 +136,30 @@ class RingBuffer {
     std::swap(capacity_, that.capacity_);
   }
 
+ public:
+  static int64_t TotalMemory() {
+    return total_memory_.load(std::memory_order_relaxed);
+  }
+
+  static int64_t MinRingBuffer() {
+    return min_memory_;
+  }
+
+  static int64_t MaxRingBuffer() {
+    return max_memory_;
+  }
+ private:
+
+  static void UpdateMemoryUsed(int64_t old, int64_t n) {
+    // no atomic, is acceptable
+    if (n > max_memory_) max_memory_ = n;
+    if (n > 0 && n < min_memory_) min_memory_ = n;
+    total_memory_.fetch_add(n - old, std::memory_order_relaxed);
+  }
+
+  static std::atomic<int64_t> total_memory_;
+  static int64_t min_memory_;
+  static int64_t max_memory_;
  private:
   // preallocate space for each connection
   char* buffer_;

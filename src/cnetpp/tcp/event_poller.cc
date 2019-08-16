@@ -27,6 +27,7 @@
 #include <cnetpp/tcp/event_poller.h>
 #include <cnetpp/tcp/event_center.h>
 #include <cnetpp/tcp/interrupter.h>
+#include <cnetpp/base/log.h>
 
 #if defined(linux) || defined(__linux) || defined(__linux__)
 #include <cnetpp/tcp/epoll_event_poller_impl.h>
@@ -73,6 +74,13 @@ bool EventPoller::Init(std::shared_ptr<EventCenter> event_center) {
 }
 
 bool EventPoller::ProcessCommand(const Command& command) {
+  CnetppDebug("[EventPoller 0X%08x, %d, %s] process command "
+              "[type %s] for [Socket 0X%08x] [%s 0X%08X]...",
+              this, this->id(), event_center_.lock()->name().c_str(),
+              command.TypeString().c_str(),
+              command.connection()->socket().fd(),
+              command.connection()->ToName().c_str(),
+              command.connection()->id());
   if (!command.connection()->socket().IsValid()) {
     // the connection has been closed
     // do nothing
@@ -83,18 +91,46 @@ bool EventPoller::ProcessCommand(const Command& command) {
       static_cast<int>(Command::Type::kWriteable)) {
     type |= static_cast<int>(Event::Type::kWrite);
   }
-  if (command.type() & static_cast<int>(Command::Type::kAddConn)) {
-    return AddPollerEvent(Event(command.connection()->socket().fd(), type));
-  } else if (command.type() & static_cast<int>(Command::Type::kRemoveConnImmediately)) {
+  if ((command.type() & static_cast<int>(Command::Type::kAddConnectingConn)) ||
+      (command.type() & static_cast<int>(Command::Type::kAddConnectedConn))) {
+    int res = AddPollerEvent(Event(command.connection()->socket().fd(), type));
+    CnetppDebug("[EventPoller 0X%08x, %d, %s] AddPollerEvent for command "
+                "[type %s] for [Socket 0X%08x] [%s 0X%08X] res(1 for OK) %d",
+                this, this->id(), event_center_.lock()->name().c_str(),
+                command.TypeString().c_str(),
+                command.connection()->socket().fd(),
+                command.connection()->ToName().c_str(),
+                command.connection()->id(), res);
+    return res;
+  } else if (command.type() &
+             static_cast<int>(Command::Type::kRemoveConnImmediately)) {
     type |= static_cast<int>(Event::Type::kClose);
-    return RemovePollerEvent(Event(command.connection()->socket().fd(), type));
+    int res = RemovePollerEvent(Event(command.connection()->socket().fd(),
+                                type));
+    CnetppDebug("[EventPoller 0X%08x, %d, %s] RemovePollerEvent for command "
+                "[type %s] for [Socket 0X%08x] [%s 0X%08X] res(1 for OK) %d",
+                this, this->id(), event_center_.lock()->name().c_str(),
+                command.TypeString().c_str(),
+                command.connection()->socket().fd(),
+                command.connection()->ToName().c_str(),
+                command.connection()->id(), res);
+    return res;
   } else if (command.type() & static_cast<int>(Command::Type::kReadable) ||
       command.type() & static_cast<int>(Command::Type::kWriteable)) {
     if (command.type() == command.connection()->cached_event_type()) {
       return true;
     }
     command.connection()->set_cached_event_type(command.type());
-    return ModifyPollerEvent(Event(command.connection()->socket().fd(), type));
+    int res = ModifyPollerEvent(Event(command.connection()->socket().fd(),
+                                type));
+    CnetppDebug("[EventPoller 0X%08x, %d, %s] ModifyPollerEvent for command "
+                "[type %s] for [Socket 0X%08x] [%s 0X%08X] res(1 for OK) %d",
+                this, this->id(), event_center_.lock()->name().c_str(),
+                command.TypeString().c_str(),
+                command.connection()->socket().fd(),
+                command.connection()->ToName().c_str(),
+                command.connection()->id(), res);
+    return res;
   } else if (command.type() & static_cast<int>(Command::Type::kRemoveConn)) {
     return true;
   }

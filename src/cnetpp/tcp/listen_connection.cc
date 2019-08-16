@@ -29,14 +29,22 @@
 #include <cnetpp/tcp/command.h>
 #include <cnetpp/tcp/event_center.h>
 #include <cnetpp/base/socket.h>
+#include <cnetpp/base/log.h>
 
 #include <assert.h>
+#include <sys/socket.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 namespace cnetpp {
 namespace tcp {
 
 // This method will be called when a socket fd becomes readable
 void ListenConnection::HandleReadableEvent(EventCenter* event_center) {
+  CnetppDebug("[ListenSocket 0X%08x] [ListenConnection 0X%08x] "
+              "receive new connection...", socket_.fd(), this->id());
+
   assert(event_center);
 
   base::ListenSocket listen_socket;
@@ -53,14 +61,27 @@ void ListenConnection::HandleReadableEvent(EventCenter* event_center) {
   new_socket.SetCloexec(true);
   new_socket.SetBlocking(false);
   new_socket.SetTcpNoDelay(true);
-  new_socket.SetKeepAlive(true);
-  new_socket.SetLinger(false);
-  new_socket.SetSendBufferSize(options_.tcp_send_buffer_size());
-  new_socket.SetReceiveBufferSize(options_.tcp_receive_buffer_size());
+  new_socket.SetTcpKeepAliveOption(60, 3, 20);
+  new_socket.SetTcpUserTimeout();
+  new_socket.SetLinger();
+#ifdef SO_NOSIGPIPE
+  int one = 1;
+  new_socket.SetOption(SOL_SOCKET, SO_NOSIGPIPE, &one, sizeof(one));
+#endif
 
   ConnectionFactory cf;
   auto new_connection =
       cf.CreateConnection(event_center_.lock(), new_socket.fd(), false);
+  CnetppDebug("[ListenSocket 0X%08x] [ListenConnection 0X%08x] "
+              "receive client from %s", socket_.fd(), this->id(),
+              remote_end_point.ToString().c_str());
+  base::EndPoint localEp;
+  new_socket.GetLocalEndPoint(&localEp);
+  CnetppDebug("[ListenSocket 0X%08x] [ListenConnection 0X%08x] "
+              "create [Socket 0X%08x] <-> [TcpConnection 0X%08x] "
+              "for remote client %s, [LocalEndPoint %s]", socket_.fd(),
+              this->id(), new_socket.fd(), new_connection->id(),
+              remote_end_point.ToString().c_str(), localEp.ToString().c_str());
   auto new_tcp_connection =
       std::static_pointer_cast<TcpConnection>(new_connection);
   new_tcp_connection->set_closed_callback(options_.closed_callback());
@@ -73,14 +94,21 @@ void ListenConnection::HandleReadableEvent(EventCenter* event_center) {
 
   new_socket.Detach();
 
+  bool ok = false;
+
   if (connected_callback_) {
     // call callback user defined
-    connected_callback_(new_tcp_connection);
+    ok = connected_callback_(new_tcp_connection);
+  }
+
+  if (!ok) {
+    return;
   }
 
   event_center->AddCommand(
-      Command(static_cast<int>(Command::Type::kAddConn), new_connection), true);
-  return;
+      Command(static_cast<int>(Command::Type::kAddConnectedConn),
+              new_connection),
+      true);
 }
 
 void ListenConnection::HandleWriteableEvent(EventCenter* event_center) {

@@ -26,9 +26,9 @@ TEST(StringPiece, CompareTest) {
 
 TEST(StringPiece, FindTest) {
   StringPiece str("This is a test string");
-  ASSERT_EQ(str.find("is", 0), 2);
-  ASSERT_EQ(str.find("is", 4), 5);
-  ASSERT_EQ(str.find('i', 0), 2);
+  ASSERT_EQ(str.find("is", 0), (size_t)2);
+  ASSERT_EQ(str.find("is", 4), (size_t)5);
+  ASSERT_EQ(str.find('i', 0), (size_t)2);
   str.set((const char*)NULL, 0);
   ASSERT_EQ(str.find('c', 9), StringPiece::npos);
 }

@@ -41,16 +41,16 @@ namespace base {
 class IPAddress final {
  public:
   static const size_t kIPv4AddressSize = 4; // 4 bytes
-  static const size_t kIPv6AddressSize = 16; // 16 bytes
+  static const int kIPv6AddressSize = 16; // 16 bytes
 
   // convert IPv4 address like '192.168.1.1', or
-  // IPv6 address like 
-  // '2001:0DB8:02de:0000:0000:0000:0000:0e13', 
-  // or '2001:DB8:2de:0000:0000:0000:0000:e13', 
-  // or '2001:0DB8:02de::0e13', 
-  // or '::e13:2001', 
-  // or 'abcd:0001::', 
-  // or '::ffff:192.168.1.1' 
+  // IPv6 address like
+  // '2001:0DB8:02de:0000:0000:0000:0000:0e13',
+  // or '2001:DB8:2de:0000:0000:0000:0000:e13',
+  // or '2001:0DB8:02de::0e13',
+  // or '::e13:2001',
+  // or 'abcd:0001::',
+  // or '::ffff:192.168.1.1'
   // to number, in network byte order
   // return false if the str_addr is invalid
   static bool LiteralToNumber(StringPiece str_addr, IPAddress* number);
@@ -81,6 +81,11 @@ class IPAddress final {
   size_t Size() const {
     return address_.size();
   }
+
+  // onlu ipv4
+  // ipv6   -> 255.255.255.255
+  // unspec -> 255.255.255.255
+  uint32_t ToIPv4ID() const;
 
   std::string ToString() const;
 

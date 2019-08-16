@@ -56,6 +56,8 @@ class Uri {
   // return true if the string is a valid uri, else false
   bool Parse(const std::string& uri);
 
+  bool ParseUriPath(const std::string& path, bool decoded = false);
+
   // get the uri with string format
   std::string String() const;
 

@@ -42,12 +42,12 @@ int main(int argc, const char **argv) {
   };
 
   http_options.set_connected_callback([&send_func] (HttpConnectionPtr c) -> bool {
-      Info("Connected to the server");
+      CnetppInfo("Connected to the server");
       return send_func(c);
   });
 
   http_options.set_closed_callback([] (HttpConnectionPtr c) -> bool {
-      Info("Connection closed");
+      CnetppInfo("Connection closed");
       (void) c;
       return true;
   });
@@ -58,13 +58,13 @@ int main(int argc, const char **argv) {
         std::static_pointer_cast<cnetpp::http::HttpResponse>(c->http_packet());
       std::string headers;
       http_response->HttpHeadersToString(&headers);
-      Info("headers: %s", headers.c_str());
+      CnetppInfo("headers: %s", headers.c_str());
       if (http_response->http_body().length() > 0) {
-        Info("body: %s", http_response->http_body().c_str());
+        CnetppInfo("body: %s", http_response->http_body().c_str());
       }
       if (counts[c->id()]++ == 10) {
         c->MarkAsClosed();
-        Info("MarkAsClosed");
+        CnetppInfo("MarkAsClosed");
         return true;
       } else {
         return send_func(c);
@@ -73,7 +73,7 @@ int main(int argc, const char **argv) {
 
   http_options.set_sent_callback([] (bool success, HttpConnectionPtr c) -> bool {
     (void) c;
-    Info("Send packet successfully");
+    CnetppInfo("Send packet successfully");
     return success;
   });
 
@@ -81,14 +81,14 @@ int main(int argc, const char **argv) {
   cnetpp::http::HttpClientOptions options;
   options.set_worker_count(1);
   if (!http_client.Launch(options)) {
-    Fatal("Failed to launch http client, exiting...");
+    CnetppFatal("Failed to launch http client, exiting...");
     return 1;
   }
 
   for (auto i = 0; i < 8; ++i) {
     auto connection_id = http_client.Connect(argv[1], http_options);
     if (connection_id == cnetpp::tcp::kInvalidConnectionId) {
-      Info("Failed to connect to server");
+      CnetppInfo("Failed to connect to server");
       return 1;
     }
   }

@@ -13,7 +13,7 @@ TEST(Value, ConstructTest) {
     ASSERT_EQ(v.GetInteger(), 1);
   }
   {
-    string str= "hello";
+    string str = "hello";
     Value v(str);
     ASSERT_EQ(v.GetString(), "hello");
   }
@@ -55,25 +55,26 @@ TEST(Parser, DeSerializeToObject) {
   std::string str1("{}");
   Value value1 = Parser::Deserialize(str1);
   ASSERT_TRUE(value1.Type() == Value::ValueType::kObject);
-  ASSERT_EQ(value1.Size(), 0);
+  ASSERT_EQ(value1.Size(), (size_t)0);
 
   std::string str2("{\"abc\":1}");
   Value value2 = Parser::Deserialize(str2);
   ASSERT_TRUE(value2.Type() == Value::ValueType::kObject);
-  ASSERT_EQ(value2.Size(), 1);
+  ASSERT_EQ(value2.Size(), (size_t)1);
   ASSERT_EQ(value2["abc"].AsInteger(), 1);
 
   std::string str3("{\"abc\":1,\"def\":\"abc\"}");
   Value value3 = Parser::Deserialize(str3);
   ASSERT_TRUE(value3.Type() == Value::ValueType::kObject);
-  ASSERT_EQ(value3.Size(), 2);
+  ASSERT_EQ(value3.Size(), (size_t)2);
   ASSERT_EQ(value3["abc"].AsInteger(), 1);
   ASSERT_EQ(value3["def"].AsString(), "abc");
 
-  std::string str4(" { \"hello\" : \"world\", \"t\" : true , \"f\" : false, \"n\": null, \"i\":123, \"pi\": 3.1416, \"a\":[1, 2, 3, 4] } ");
+  std::string str4(" { \"hello\" : \"world\", \"t\" : true , \"f\" : false, "
+      "\"n\": null, \"i\":123, \"pi\": 3.1416, \"a\":[1, 2, 3, 4] } ");
   Value value4 = Parser::Deserialize(str4);
   ASSERT_TRUE(value4.Type() == Value::ValueType::kObject);
-  ASSERT_EQ(value4.Size(), 7);
+  ASSERT_EQ(value4.Size(), (size_t)7);
   ASSERT_EQ(value4["hello"].AsString(), "world");
   ASSERT_TRUE(value4["t"].AsBool());
   ASSERT_FALSE(value4["f"].AsBool());
@@ -81,7 +82,7 @@ TEST(Parser, DeSerializeToObject) {
   ASSERT_EQ(value4["i"].AsInteger(), 123);
   ASSERT_DOUBLE_EQ(value4["pi"].AsDouble(), 3.1416);
   ASSERT_EQ(value4["a"].Type(), Value::ValueType::kArray);
-  ASSERT_EQ(value4["a"].Size(), 4);
+  ASSERT_EQ(value4["a"].Size(), (size_t)4);
   ASSERT_EQ(value4["a"][0].AsInteger(), 1);
   ASSERT_EQ(value4["a"][1].AsInteger(), 2);
   ASSERT_EQ(value4["a"][2].AsInteger(), 3);
@@ -105,7 +106,8 @@ TEST(Parser, DeSerializeToObject) {
   ASSERT_EQ(value8["abc"].AsInteger(), 1);
   ASSERT_EQ(value8["def"].AsString(), "abc\r");
 
-  std::string str9("# this is a json file\r\n{\"abc\":1#this is first member\n,\"def\":\"abc#\"#this second member\n}");
+  std::string str9("# this is a json file\r\n{\"abc\":1#this is first member\n,"
+      "\"def\":\"abc#\"#this second member\n}");
   Value value9 = Parser::Deserialize(str9);
   ASSERT_EQ(value9.Type(), Value::ValueType::kObject);
   ASSERT_EQ(value9["abc"].AsInteger(), 1);
@@ -129,18 +131,19 @@ TEST(CsonppTest, DeSerializeToArray) {
   std::string str1("[]");
   Value value1 = Parser::Deserialize(str1);
   ASSERT_TRUE(value1.Type() == Value::ValueType::kArray);
-  ASSERT_EQ(value1.Size(), 0);
+  ASSERT_EQ(value1.Size(), (size_t)0);
 
-  std::string str2("[3.1456, 1., 2, \"ab\", { \"aaa\" : { \"123\" :   \t1.2e-5}\t}, true, false, null]");
+  std::string str2("[3.1456, 1., 2, \"ab\", { \"aaa\" : "
+      "{ \"123\" :   \t1.2e-5}\t}, true, false, null]");
   Value value2 = Parser::Deserialize(str2);
   ASSERT_TRUE(value2.Type() == Value::ValueType::kArray);
-  ASSERT_EQ(value2.Size(), 8);
+  ASSERT_EQ(value2.Size(), (size_t)8);
   ASSERT_DOUBLE_EQ(value2[0].AsDouble(), 3.1456);
   ASSERT_DOUBLE_EQ(value2[1].AsDouble(), 1.);
   ASSERT_EQ(value2[2].AsInteger(), 2);
   ASSERT_EQ(value2[3].AsString(), "ab");
   ASSERT_TRUE(value2[4].Type() == Value::ValueType::kObject);
-  ASSERT_EQ(value2[4].Size(), 1);
+  ASSERT_EQ(value2[4].Size(), (size_t)1);
   ASSERT_TRUE(value2[4]["aaa"].Type() == Value::ValueType::kObject);
   ASSERT_DOUBLE_EQ(value2[4]["aaa"]["123"].AsDouble(), 0.000012);
   ASSERT_TRUE(value2[5].AsBool());
@@ -150,33 +153,36 @@ TEST(CsonppTest, DeSerializeToArray) {
   std::string str3("[12,false, false  , null , [12e4,32, [], \"12\"]]");
   Value value3 = Parser::Deserialize(str3);
   ASSERT_TRUE(value3.Type() == Value::ValueType::kArray);
-  ASSERT_EQ(value3.Size(), 5);
+  ASSERT_EQ(value3.Size(), (size_t)5);
   ASSERT_EQ(value3[0].AsInteger(), 12);
   ASSERT_FALSE(value3[1].AsBool());
   ASSERT_FALSE(value3[2].AsBool());
   ASSERT_EQ(value3[3].Type(), Value::ValueType::kNull);
   ASSERT_EQ(value3[4].Type(), Value::ValueType::kArray);
-  ASSERT_EQ(value3[4].Size(), 4);
+  ASSERT_EQ(value3[4].Size(), (size_t)4);
   ASSERT_DOUBLE_EQ(value3[4][0].AsDouble(), 120000);
   ASSERT_EQ(value3[4][1].AsInteger(), 32);
   ASSERT_EQ(value3[4][2].Type(), Value::ValueType::kArray);
-  ASSERT_EQ(value3[4][2].Size(), 0);
+  ASSERT_EQ(value3[4][2].Size(), (size_t)0);
   ASSERT_EQ(value3[4][3].AsString(), "12");
 }
 
 TEST(CsonppTest, DeserializeUnicodeString) {
-  std::string str1("[3.1456, 1., 2, \"a\\u0062\", { \"a\\u5066a\" : { \"12\\uD800\\uDC00\" :   \t1.2e-2}\t}, true, false, null]");
+  std::string str1(
+      "[3.1456, 1., 2, \"a\\u0062\", { \"a\\u5066a\" : { \"12\\uD800\\uDC00\" :"
+      "   \t1.2e-2}\t}, true, false, null]");
   Value value1 = Parser::Deserialize(str1);
   ASSERT_TRUE(value1.Type() == Value::ValueType::kArray);
-  ASSERT_EQ(value1.Size(), 8);
+  ASSERT_EQ(value1.Size(), (size_t)8);
   ASSERT_DOUBLE_EQ(value1[0].AsDouble(), 3.1456);
   ASSERT_DOUBLE_EQ(value1[1].AsDouble(), 1.);
   ASSERT_EQ(value1[2].AsInteger(), 2);
   ASSERT_EQ(value1[3].AsString(), "ab");
   ASSERT_EQ(value1[4].Type(), Value::ValueType::kObject);
-  ASSERT_EQ(value1[4].Size(), 1);
+  ASSERT_EQ(value1[4].Size(), (size_t)1);
   ASSERT_EQ(value1[4]["a\xE5\x81\xA6\x61"].Type(), Value::ValueType::kObject);
-  ASSERT_EQ(value1[4]["a\xE5\x81\xA6\x61"]["12\xF0\x90\x80\x80"].AsDouble(), 0.012);
+  ASSERT_EQ(value1[4]["a\xE5\x81\xA6\x61"]["12\xF0\x90\x80\x80"].AsDouble(),
+            0.012);
   ASSERT_TRUE(value1[5].AsBool());
   ASSERT_FALSE(value1[6].AsBool());
   ASSERT_EQ(value1[7].Type(), Value::ValueType::kNull);
@@ -212,13 +218,50 @@ TEST(CsonppTest, Serialize) {
   ASSERT_EQ(value5.Type(), Value::ValueType::kObject);
   ASSERT_EQ(Parser::Serialize(value5), "{\"a\":-1234567.50}");
 
-  std::string str6("[3.1456, 1., 2, \"a\\u0062\", { \"a\\u5066a\" : { \"12\\uD800\\uDC00\" :   \t1.2e-2}\t}, true, false, null]");
+  std::string str6("[3.1456, 1., 2, \"a\\u0062\", { \"a\\u5066a\" : "
+      "{ \"12\\uD800\\uDC00\" :   \t1.2e-2}\t}, true, false, null]");
   Value value6 = Parser::Deserialize(str6);
-  ASSERT_EQ(Parser::Serialize(value6), "[3.14560,1.0,2,\"ab\",{\"a\\u5066a\":{\"12\\uD800\\uDC00\":0.0120}},true,false,null]");
+  ASSERT_EQ(Parser::Serialize(value6),
+            "[3.14560,1.0,2,\"ab\",{\"a\\u5066a\":"
+            "{\"12\\uD800\\uDC00\":0.0120}},true,false,null]");
 
   std::string str7("[12,false, false  , null , [12e4,32, [], \"12\"]]");
   Value value7 = Parser::Deserialize(str7);
   std::string aa = Parser::Serialize(value7);
-  ASSERT_EQ(Parser::Serialize(value7), "[12,false,false,null,[120000.0,32,[],\"12\"]]");
+  ASSERT_EQ(Parser::Serialize(value7),
+            "[12,false,false,null,[120000.0,32,[],\"12\"]]");
+}
+
+TEST(CsonppTest, Deserialize01) {
+  std::string str("[{\"IdleTime\":1800,\"Topic\":\"360_search_result\","
+      "\"Cluster\":{\"Zookeeper\":\"10.6.128.152:2185,"
+      "10.6.129.12:2185\\/kafka-misc\"},\"ShmPath\":"
+      "\"\\/dev\\/shm\\/360_search_result\",\"Backend\":\"kafka\"}]");
+  Value value;
+  ASSERT_TRUE(Parser::Deserialize(str, &value));
+  ASSERT_EQ(value.AsArray()[0].AsObject()["ShmPath"].AsString(),
+            "/dev/shm/360_search_result");
+  ASSERT_EQ(value.AsArray()[0].AsObject()["IdleTime"].AsInteger(), 1800);
+}
+
+TEST(CsonppTest, Deserialize02) {
+  std::string in("{\"a\":{\"k1\":1 ,\"k2\":2 }}");
+  cnetpp::base::Object stats;
+  stats["test"] = cnetpp::base::Parser::Deserialize(in);
+  std::string s;
+  cnetpp::base::Parser::Serialize(cnetpp::base::Value(stats), &s);
+
+  ASSERT_EQ(s, "{\"test\":{\"a\":{\"k1\":1,\"k2\":2}}}");
+}
+
+TEST(CsonppTest, Deserialize03) {
+  std::string in("{\"a\":{\"k1\":1,\"k2\":0e5}}");
+  cnetpp::base::Object stats;
+  stats["test"] = cnetpp::base::Parser::Deserialize(in);
+
+  std::string s;
+  cnetpp::base::Parser::Serialize(cnetpp::base::Value(stats), &s);
+
+  ASSERT_EQ(s, "{\"test\":{\"a\":{\"k1\":1,\"k2\":0.0}}}");
 }
 

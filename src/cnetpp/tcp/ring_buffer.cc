@@ -38,11 +38,30 @@
 namespace cnetpp {
 namespace tcp {
 
+std::atomic<int64_t> RingBuffer::total_memory_{0};
+int64_t RingBuffer::min_memory_ = INT64_MAX;
+int64_t RingBuffer::max_memory_ = 0;
+
+void RingBuffer::Recycle() {
+  if (Empty()) {
+    uint32_t len = 0;
+    buffer_ = (char *)base::MemoryCache::Instance()->Recycle(buffer_, &len);
+    UpdateMemoryUsed(capacity_, len);
+    begin_  = 0;
+    end_    = 0;
+    size_   = 0;
+    capacity_ = len;
+  }
+}
+
 bool RingBuffer::Resize(size_t new_size) {
   if (new_size < size_) {
     return false;
   }
-  char* tmp = new char[new_size];
+
+  UpdateMemoryUsed(capacity_, new_size);
+
+  char* tmp = (char *)base::MemoryCache::Instance()->Allocate(new_size);
   if (size_ > 0) {
     if (end_ <= begin_) {
       // readable data is splited into two slices
@@ -52,7 +71,7 @@ bool RingBuffer::Resize(size_t new_size) {
       ::memcpy(tmp, buffer_ + begin_, end_ - begin_);
     }
   }
-  delete [] buffer_;
+  base::MemoryCache::Instance()->Deallocate(buffer_);
   buffer_ = tmp;
   capacity_ = new_size;
   begin_ =  0;
@@ -258,7 +277,7 @@ bool RingBuffer::DoFind(base::StringPiece delimiters, base::StringPiece* data) {
   if (end_ <= begin_) {
     Reform();
   }
-  
+
   base::StringPiece buf(buffer_ + begin_, size_);
   base::StringPiece::size_type idx = buf.find(delimiters);
   if (idx == base::StringPiece::npos) {
@@ -269,6 +288,7 @@ bool RingBuffer::DoFind(base::StringPiece delimiters, base::StringPiece* data) {
 }
 
 void RingBuffer::Reform() {
+#if 0
   if (end_ <= 2 * begin_ - static_cast<int>(capacity_)) {
     ::memmove(buffer_ + capacity_ - begin_, buffer_, end_);
     ::memcpy(buffer_, buffer_ + begin_, capacity_ - begin_);
@@ -286,6 +306,14 @@ void RingBuffer::Reform() {
       ::memcpy(buffer_, tmp, capacity_ - begin_);
       delete [] tmp;
     }
+  }
+#endif
+  if (size_ > 0) {
+    char* tmp = (char *)base::MemoryCache::Instance()->Allocate(size_);
+    memcpy(tmp, buffer_ + begin_, capacity_ - begin_);
+    memcpy(tmp + capacity_ - begin_, buffer_, end_);
+    memcpy(buffer_, tmp, size_);
+    base::MemoryCache::Instance()->Deallocate(tmp);
   }
   begin_ = 0;
   end_ = size_;

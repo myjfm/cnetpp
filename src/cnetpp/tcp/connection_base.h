@@ -54,6 +54,13 @@ class ConnectionBase : public std::enable_shared_from_this<ConnectionBase> {
 
   virtual ~ConnectionBase() = default;
 
+  virtual std::string ToName() const {
+    return "";
+  }
+  std::string ToString() const {
+    return "[" + ToName() + " " + std::to_string(id_) + "]";
+  }
+
   const base::TcpSocket& socket() const {
     return socket_;
   }

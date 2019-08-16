@@ -34,11 +34,19 @@
 namespace cnetpp {
 namespace concurrency {
 
+namespace {
+  thread_local Thread* cnetpp_current_thread = nullptr;
+}
+
+std::atomic<int> Thread::cnetpp_max_thread_index_{0};
+
 Thread::Thread(std::shared_ptr<Task> task, const std::string& name)
     : name_(name), task_(std::move(task)) {
   if (name_.length() > kMaxNameLength) {
-    Fatal("Thread name is too long: %s", name_.c_str());
+    CnetppFatal("Thread name is too long: %s", name_.c_str());
   }
+  thread_index_ = cnetpp_max_thread_index_.fetch_add(1);
+  thread_pool_index_ = -1;
 }
 
 Thread::Thread(const std::function<bool()>& closure, const std::string& name)
@@ -52,17 +60,17 @@ Thread::~Thread() {
 
 void Thread::Start() {
   if (!task_.get()) {
-    Fatal("task_ is null, please pass a valid task!");
+    CnetppFatal("task_ is null, please pass a valid task!");
   }
 
   Status old = Status::kInit;
   if (!status_.compare_exchange_strong(old, Status::kRunning)) {
-    Fatal("Failed to start thread, invalid thread status: %d",
+    CnetppFatal("Failed to start thread, invalid thread status: %d",
         static_cast<int>(old));
   }
 
   if (thread_.get()) {
-    Fatal("thread_ is not null, there must be something wrong.");
+    CnetppFatal("thread_ is not null, there must be something wrong.");
   }
 
   thread_ = std::make_unique<std::thread>([this] () {
@@ -71,6 +79,7 @@ void Thread::Start() {
 #else
     pthread_setname_np(pthread_self(), name_.c_str());
 #endif
+    cnetpp_current_thread = this;
     (*task_)();
   });
 }
@@ -95,11 +104,31 @@ void Thread::Join() {
   }
 
   if (!IsJoinable()) {
-    Fatal("The thread is not joinable!");
+    CnetppFatal("The thread is not joinable!");
   }
   thread_->join();
   thread_.reset();
   status_.store(Status::kStop, std::memory_order_release);
+}
+
+void Thread::SetThreadPoolIndex(int index) {
+  thread_pool_index_ = index;
+}
+
+int Thread::ThreadPoolIndex() const {
+  return thread_pool_index_;
+}
+
+int Thread::ThreadIndex() const {
+  return thread_index_;
+}
+
+const Thread* Thread::ThisThread() {
+  return cnetpp_current_thread;
+}
+
+int Thread::MaxThreadIndex() {
+  return cnetpp_max_thread_index_;
 }
 
 }  // namespace concurrency

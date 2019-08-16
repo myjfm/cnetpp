@@ -65,6 +65,10 @@ class EventCenter final : public std::enable_shared_from_this<EventCenter> {
 
   bool ProcessEvent(const Event& event, size_t id);
 
+  const std::string& name() const {
+    return name_;
+  }
+
  private:
   EventCenter(const std::string& name, size_t thread_num = 0);
 

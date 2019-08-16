@@ -41,6 +41,8 @@
 namespace cnetpp {
 namespace tcp {
 
+const int32_t kDefaultRecvBufferSize = 8192;
+
 // forward declaration
 class EventCenter;
 
@@ -49,13 +51,24 @@ class TcpConnection : public ConnectionBase {
   friend class ConnectionFactory;
 
   virtual ~TcpConnection() = default;
+  virtual std::string ToName() const override {
+    return "TcpConnection";
+  }
 
   void SetSendBufferSize(size_t send_buffer_size) {
     send_buffer_size_ = send_buffer_size;
   }
 
   void SetRecvBufferSize(size_t recv_buffer_size) {
+    if (recv_buffer_size == 0) {
+      recv_buffer_size = kDefaultRecvBufferSize;
+    }
+    if (recv_buffer_size < recv_buffer_.Size()) {
+      recv_buffer_ = RingBuffer(recv_buffer_size);
+      return;
+    }
     receive_buffer_size_ = recv_buffer_size;
+    recv_buffer_.Resize(receive_buffer_size_);
   }
 
   const RingBuffer& recv_buffer() const {
@@ -138,7 +151,7 @@ class TcpConnection : public ConnectionBase {
  private:
   TcpConnection(std::shared_ptr<EventCenter> event_center, int fd)
       : ConnectionBase(event_center, fd),
-        recv_buffer_(0) {
+        recv_buffer_(kDefaultRecvBufferSize) {
   }
 
   bool SendPacket();

@@ -728,6 +728,7 @@ int64_t Value::AsInteger() const {
   } else {
     assert(false);
   }
+  return 0;
 }
 
 double Value::AsDouble() const {
@@ -738,6 +739,7 @@ double Value::AsDouble() const {
   } else {
     assert(false);
   }
+  return 0;
 }
 
 bool Value::AsBool() const {
@@ -845,19 +847,19 @@ bool operator!=(const Array& left, const Array& right) {
 }
 
 bool operator>(const Array& left, const Array& right) {
-  return left > right;
+  return left.value_ > right.value_;
 }
 
 bool operator<(const Array& left, const Array& right) {
-  return left < right;
+  return left.value_ < right.value_;
 }
 
 bool operator>=(const Array& left, const Array& right) {
-  return !(left < right);
+  return !(left.value_ < right.value_);
 }
 
 bool operator<=(const Array& left, const Array& right) {
-  return !(left > right);
+  return !(left.value_ > right.value_);
 }
 
 bool operator==(const Value& left, const Value& right) {
@@ -1227,7 +1229,8 @@ Token TokenizerImpl::GetToken() {
           token.value += CodePoint2Utf8(code_point);
           break;
         }
-        default: return error_occured();
+        default: token.value.append(1, cc); break;
+        // default: return error_occured();
         }
         break;
       }
@@ -1251,7 +1254,8 @@ Token TokenizerImpl::GetToken() {
         token.value.append(1, static_cast<char>(c));
         c = GetNextChar();
       }
-      if (c == '\0' || c == ',' || c == '}' || c == ']' || c == '#') {
+      if (c == '\0' || c == ',' || c == '}' || c == ']' || c == '#' ||
+          std::isspace(c)) {
         UngetNextChar();
         return token;
       } else if (c == 'e' || c == 'E') {
@@ -1267,7 +1271,8 @@ Token TokenizerImpl::GetToken() {
       }
       break;
     case DFAState::kNumber3:
-      if (c == '\0' || c == ',' || c == '}' || c == ']' || c == '#') {
+      if (c == '\0' || c == ',' || c == '}' || c == ']' || c == '#' ||
+          std::isspace(c)) {
         UngetNextChar();
         return token;
       } else if (c == 'e' || c == 'E') {
@@ -1287,7 +1292,8 @@ Token TokenizerImpl::GetToken() {
         token.value.append(1, static_cast<char>(c));
         c = GetNextChar();
       }
-      if (c == '\0' || c == ',' || c == '}' || c == ']' || c == '#') {
+      if (c == '\0' || c == ',' || c == '}' || c == ']' || c == '#' ||
+          std::isspace(c)) {
         UngetNextChar();
         return token;
       } else if (c == 'e' || c == 'E') {
@@ -1321,7 +1327,8 @@ Token TokenizerImpl::GetToken() {
         token.value.append(1, static_cast<char>(c));
         c = GetNextChar();
       }
-      if (c == '\0' || c == ',' || c == '}' || c == ']' || c == '#') {
+      if (c == '\0' || c == ',' || c == '}' || c == ']' || c == '#' ||
+          std::isspace(c)) {
         UngetNextChar();
         return token;
       } else {

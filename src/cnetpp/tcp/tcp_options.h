@@ -27,6 +27,8 @@
 #ifndef CNETPP_TCP_TCP_OPTIONS_H_
 #define CNETPP_TCP_TCP_OPTIONS_H_
 
+#include <sys/socket.h>
+
 #include <memory>
 #include <functional>
 
@@ -127,8 +129,8 @@ class TcpOptions {
  private:
   size_t worker_count_ { 0 };
   size_t max_command_queue_len_ { 1024 };
-  size_t tcp_send_buffer_size_ { 32 * 1024 };
-  size_t tcp_receive_buffer_size_ { 32 * 1024 };
+  size_t tcp_send_buffer_size_ { 0 };
+  size_t tcp_receive_buffer_size_ { 0 };
   size_t send_buffer_size_ { 0 };
   size_t receive_buffer_size_ { 0 };
   ConnectedCallbackType connected_callback_ { nullptr };
@@ -149,8 +151,16 @@ class TcpServerOptions final : public TcpOptions {
     name_ = name;
   }
 
+  int backlog() const {
+    return backlog_;
+  }
+  void set_backlog(int backlog) {
+    backlog_ = backlog;
+  }
+
  private:
   std::string name_ { "dft" };
+  int backlog_ { SOMAXCONN };
 };
 
 class TcpClientOptions final : public TcpOptions {

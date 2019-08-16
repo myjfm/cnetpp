@@ -37,6 +37,7 @@
 #include <fcntl.h>
 #include <sys/select.h>
 #include <unistd.h>
+#include <cnetpp/base/log.h>
 
 namespace cnetpp {
 namespace tcp {
@@ -85,6 +86,8 @@ bool PollEventPollerImpl::Poll() {
 
     if (revents & (POLLERR | POLLHUP | POLLNVAL)) {
       has_event = true;
+      CnetppInfo("socket error with event %d for [Socket 0X%08x]",
+                 revents, fd);
       event.mutable_mask() |= static_cast<int>(Event::Type::kClose);
     } else {
       if (revents & (POLLIN | POLLRDNORM | POLLPRI | POLLRDBAND)) {
@@ -111,6 +114,8 @@ bool PollEventPollerImpl::AddPollerEvent(Event&& event) {
   if (static_cast<size_t>(poll_fds_end_) >= max_connections_) {
     // TODO log an error
     // we are too many connections, just close the new arrival
+    CnetppInfo("AddPollerEvent error because we reach "
+               "the max_connections %d", max_connections_);
     base::TcpSocket socket;
     socket.Attach(event.fd());
     socket.Close();

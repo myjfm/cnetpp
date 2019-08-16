@@ -42,6 +42,9 @@ class ListenConnection : public ConnectionBase {
  public:
   friend class ConnectionFactory;
   virtual ~ListenConnection() = default;
+  virtual std::string ToName() const override {
+    return "ListenConnection";
+  }
 
   const TcpServerOptions& tcp_server_options() const {
     return options_;

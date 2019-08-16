@@ -2,8 +2,13 @@
 cmake_minimum_required(VERSION 2.8)
 project(cnetpp)
 include_directories("${CMAKE_SOURCE_DIR}/src")
+SET(CMAKE_VERBOSE_MAKEFILE ON)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -std=c++14 -Werror")
+IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -std=c++14 -Werror -Wall -ldl -Wno-unused-function")
+ELSE()
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -std=c++14 -Werror -Wall -Wno-unused-function")
+ENDIF()
 
 file(GLOB HTTP_HEADER_FILES "src/cnetpp/http/*.h")
 file(GLOB HTTP_SOURCE_FILES "src/cnetpp/http/*.cc")
@@ -42,7 +47,7 @@ add_subdirectory(third_party/gtest-1.7.0)
 aux_source_directory(unittests/base UNITTEST_FILES)
 aux_source_directory(unittests/concurrency UNITTEST_FILES)
 aux_source_directory(unittests/tcp UNITTEST_FILES)
-add_executable(cnetpp_unittest ${UNITTEST_FILES})
+add_executable(cnetpp_unittest ${UNITTEST_FILES} unittests/tcp/tcp_client_unittest.cc)
 target_include_directories(cnetpp_unittest PRIVATE third_party/gtest-1.7.0/include unittest)
 target_link_libraries(cnetpp_unittest cnetpp gtest gtest_main pthread)
 

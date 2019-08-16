@@ -25,6 +25,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //
 #include <cnetpp/base/socket.h>
+#include <cnetpp/base/log.h>
 
 #include <sys/uio.h>
 
@@ -34,12 +35,14 @@ namespace base {
 bool Socket::Create(int af, int type, int protocol) {
   Close();
   fd_ = ::socket(af, type, protocol);
+  CnetppDebug("socket::create [Socket 0X%08x]", fd_);
   return IsValid();
 }
- 
+
 void Socket::Attach(int fd) {
   if (fd != fd_) {
     bool res = Close();
+    (void) res;
     assert(res);
     fd_ = fd;
   }
@@ -47,6 +50,7 @@ void Socket::Attach(int fd) {
 
 bool Socket::Close() {
   if (IsValid()) {
+    CnetppDebug("socket::close [Socket 0X%08x]", fd_);
     int fd = fd_;
     fd_ = -1;
     return ::close(fd) == 0;
@@ -92,30 +96,33 @@ bool Socket::GetBlocking(bool* value) {
 }
 
 bool Socket::Bind(const EndPoint& end_point) {
-  sockaddr address;
+  char storage[sizeof(struct sockaddr_storage)];
+  struct sockaddr* address = (struct sockaddr *)storage;
   socklen_t address_len;
-  if (!end_point.ToSockAddr(&address, &address_len)) {
+  if (!end_point.ToSockAddr(address, &address_len)) {
     return false;
   }
-  return ::bind(fd_, &address, address_len) == 0;
+  return ::bind(fd_, address, address_len) == 0;
 }
 
 
 bool Socket::GetLocalEndPoint(EndPoint* end_point) const {
-  struct sockaddr addr;
-  socklen_t addr_length;
-  if (getsockname(fd_, &addr, &addr_length) == 0) {
-    end_point->FromSockAddr(addr, addr_length);
+  char storage[sizeof(struct sockaddr_storage)];
+  struct sockaddr* addr = (struct sockaddr *)storage;
+  socklen_t addr_length = sizeof(struct sockaddr_storage);
+  if (getsockname(fd_, addr, &addr_length) == 0) {
+    end_point->FromSockAddr(*addr, addr_length);
     return true;
   }
   return false;
 }
 
 bool Socket::GetPeerEndPoint(EndPoint* end_point) const {
-  struct sockaddr addr;
-  socklen_t addr_length;
-  if (getpeername(fd_, &addr, &addr_length) == 0) {
-    end_point->FromSockAddr(addr, addr_length);
+  char storage[sizeof(struct sockaddr_storage)];
+  struct sockaddr* addr = (struct sockaddr *)storage;
+  socklen_t addr_length = sizeof(struct sockaddr_storage);
+  if (getpeername(fd_, addr, &addr_length) == 0) {
+    end_point->FromSockAddr(*addr, addr_length);
     return true;
   }
   return false;
@@ -183,7 +190,7 @@ ListenSocket::ListenSocket(const EndPoint& end_point)
     throw std::runtime_error("Create listen socket failed, end point is: " +
                              end_point.ToString());
   }
-  
+
   SetReuseAddress(true);
 
   if (!Bind(end_point)) {
@@ -199,14 +206,15 @@ bool ListenSocket::Accept(Socket* socket,
                           EndPoint* end_point,
                           bool auto_restart) {
   assert(socket);
-  struct sockaddr address;
-  socklen_t address_length = sizeof(address);
+  char storage[sizeof(struct sockaddr_storage)];
+  struct sockaddr* address = (struct sockaddr *)storage;
+  socklen_t address_length = sizeof(struct sockaddr_storage);
   while (true) {
-    int ret = accept(fd(), &address, &address_length);
+    int ret = accept(fd(), address, &address_length);
     if (ret != -1) {
       socket->Attach(ret);
       if (end_point) {
-        end_point->FromSockAddr(address, address_length);
+        end_point->FromSockAddr(*address, address_length);
       }
       return true;
     } else {
@@ -219,25 +227,26 @@ bool ListenSocket::Accept(Socket* socket,
 }
 
 // Following member methods are for DataSocket
-bool DataSocket::Connect(const EndPoint& end_point) {
-  struct sockaddr address;
-  socklen_t address_length = sizeof(address);
-  end_point.ToSockAddr(&address, &address_length);
-  if (connect(fd(), &address, address_length) != 0) {
+int DataSocket::Connect(const EndPoint& end_point) {
+  char storage[sizeof(struct sockaddr_storage)];
+  struct sockaddr* address = (struct sockaddr *)storage;
+  socklen_t address_length = sizeof(struct sockaddr_storage);
+  end_point.ToSockAddr(address, &address_length);
+  if (connect(fd(), address, address_length) != 0) {
     switch (errno) {
       case EINTR:
       case EWOULDBLOCK:
-        return true;
+        return 0;
       case EINPROGRESS: {
         bool blocking = true;
         if (GetBlocking(&blocking) && !blocking) {
-          return true;
+          return 0;
         }
       }
     }
-    return false;
+    return -1;
   }
-  return true;
+  return 1;
 }
 
 bool DataSocket::Send(const void* buffer,
@@ -561,18 +570,19 @@ bool UdpSocket::ReceiveFrom(void* buffer,
                             size_t* received_size,
                             EndPoint* end_point,
                             int flags) {
-  struct sockaddr address;
-  socklen_t address_length = sizeof(address);
+  char storage[sizeof(struct sockaddr_storage)];
+  struct sockaddr* address = (struct sockaddr *)storage;
+  socklen_t address_length = sizeof(struct sockaddr_storage);
   int n = recvfrom(fd(),
                    reinterpret_cast<char*>(buffer),
                    buffer_size,
                    flags,
-                   &address,
+                   address,
                    &address_length);
   if (n >= 0) {
     *received_size = n;
     if (end_point) {
-      end_point->FromSockAddr(address, address_length);
+      end_point->FromSockAddr(*address, address_length);
     }
     return true;
   } else {

@@ -59,7 +59,7 @@ class ThreadPool final {
   
   void set_num_threads(size_t num) {
     assert(status_.load(std::memory_order_acquire) == Status::kInit);
-    threads_.resize(num);
+    threads_.resize((num == 0) ? 1 : num);
   }
 
   void set_max_num_pending_tasks(size_t num) {
@@ -71,6 +71,12 @@ class ThreadPool final {
 
   // stop all threads in this thread pool
   void Stop(bool wait = false);
+
+  size_t PendingCount() const;
+
+  size_t NumRunningTasks() const {
+    return num_running_tasks_.load();
+  }
 
   // add a task into the queue and one of the threads in the pool will run it
   bool AddTask(std::shared_ptr<Task> task);
@@ -104,6 +110,7 @@ class ThreadPool final {
   std::mutex mutex_;
   std::condition_variable queue_cv_;
   std::shared_ptr<QueueBase> queue_;
+  std::atomic<size_t> num_running_tasks_ { 0 };
 
   std::vector<std::unique_ptr<Thread>> threads_;
 

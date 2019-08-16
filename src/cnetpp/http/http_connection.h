@@ -146,7 +146,6 @@ class HttpConnection : public std::enable_shared_from_this<HttpConnection> {
   std::shared_ptr<HttpPacket> http_packet_ { nullptr };
   ReceiveStatus receive_status_ { ReceiveStatus::kWaitingHeader };
   int64_t current_chunk_size_ { 0 };
-  bool finished_send_ { true };
 
   ConnectedCallbackType connected_callback_ { nullptr };
   ClosedCallbackType closed_callback_ { nullptr };

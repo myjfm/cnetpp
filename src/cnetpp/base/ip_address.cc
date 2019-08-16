@@ -257,7 +257,7 @@ bool IPAddress::IPv6NumberToLiteral(const IPAddress& number,
   }
 
   for (int i = 0; i < kIPv6AddressSize;) {
-    if (i == begin) { 
+    if (i == begin) {
       if (i == 0) {
         str_addr->append(1, ':');
       }
@@ -309,6 +309,16 @@ std::string IPAddress::ToString() const {
     return "";
   }
   return str_addr;
+}
+
+uint32_t IPAddress::ToIPv4ID() const {
+  if (Family() != AF_INET) return 0xffffffffu;
+  uint32_t v = 0;
+  v = (v << 8) | address_[3];
+  v = (v << 8) | address_[2];
+  v = (v << 8) | address_[1];
+  v = (v << 8) | address_[0];
+  return v;
 }
 
 }  // namespace base

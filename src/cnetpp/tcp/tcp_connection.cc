@@ -29,7 +29,7 @@
 #include <cnetpp/tcp/ring_buffer.h>
 #include <cnetpp/tcp/event_center.h>
 #include <cnetpp/base/socket.h>
-
+#include <cnetpp/base/log.h>
 #include <assert.h>
 
 #include <memory>
@@ -45,6 +45,9 @@ bool TcpConnection::SendPacket() {
   if (!event_center.get()) {
     return false;
   }
+  CnetppDebug("[Socket 0X%08x] [TcpConnection 0X%08x] "
+              "send packet command [type %s]",
+              socket_.fd(), this->id(), command.TypeString().c_str());
   event_center->AddCommand(command,
       ep_thread_id_ != std::this_thread::get_id());
   return true;
@@ -53,6 +56,7 @@ bool TcpConnection::SendPacket() {
 bool TcpConnection::SendPacket(base::StringPiece data) {
   auto send_buffer = std::make_unique<RingBuffer>(data.size());
   bool r = send_buffer->Write(data);
+  (void) r;
   assert(r);
   return SendPacket(std::move(send_buffer));
 }
@@ -67,6 +71,8 @@ bool TcpConnection::SendPacket(std::unique_ptr<RingBuffer>&& data) {
 
 // This method will be called when a socket fd becomes readable
 void TcpConnection::HandleReadableEvent(EventCenter* event_center) {
+  CnetppDebug("[Socket 0X%08x] [TcpConnection 0X%08x] "
+              "receive readable event", socket_.fd(), this->id());
   bool closed = false;
 
   if (state_ == State::kConnecting) {
@@ -78,6 +84,9 @@ void TcpConnection::HandleReadableEvent(EventCenter* event_center) {
     } else if (error == EINPROGRESS) {
       return;
     } else {
+      CnetppDebug("[Socket 0X%08x] [TcpConnection 0X%08x] "
+                  "change state from kConnecting to kConnected",
+                  socket_.fd(), this->id());
       state_ = State::kConnected;
       if (connected_callback_) {
         // call callback user defined
@@ -91,7 +100,7 @@ void TcpConnection::HandleReadableEvent(EventCenter* event_center) {
     // handle new arrival data
     while (true) {
       if (recv_buffer_.Capacity() - recv_buffer_.Size() < 512) {
-        recv_buffer_.Resize(recv_buffer_.Capacity() + 4096);
+        recv_buffer_.Resize(2 * recv_buffer_.Capacity());
       }
       struct iovec buffers[2];
       recv_buffer_.GetWritePositions(buffers, 2);
@@ -118,7 +127,6 @@ void TcpConnection::HandleReadableEvent(EventCenter* event_center) {
     }
   }
 
-  bool tmp = false;
   if (closed && state_ != State::kClosed) {
     // remove this connection from event center
     Command command(static_cast<int>(Command::Type::kRemoveConnImmediately),
@@ -128,33 +136,29 @@ void TcpConnection::HandleReadableEvent(EventCenter* event_center) {
 }
 
 void TcpConnection::HandleWriteableEvent(EventCenter* event_center) {
-  send_lock_.Lock();
-  if (send_buffers_.empty()) {
-    send_lock_.Unlock();
-    if (state_ == State::kConnected) {
-      Command command(static_cast<int>(Command::Type::kReadable),
-          shared_from_this());
-      event_center->AddCommand(command, false);
-    } else if (state_ == State::kClosing) {
-      Command command(static_cast<int>(Command::Type::kRemoveConnImmediately),
-          shared_from_this());
-      event_center->AddCommand(command, false);
-    }
-    // do nothing
-    return;
-  }
-  send_lock_.Unlock();
+  CnetppDebug("[Socket 0X%08x] [TcpConnection 0X%08x] "
+              "receive writeable event...", socket_.fd(), this->id());
 
   bool closed = false;
+
   if (state_ == State::kConnecting) {
     int error = 0;
     socklen_t error_length = sizeof(error);
     if (!socket_.GetOption(SOL_SOCKET, SO_ERROR, &error, &error_length) ||
         (error && error != EINPROGRESS)) {
+      std::string error_string = concurrency::ThisThread::GetLastErrorString();
+      CnetppInfo("[Socket 0X%08x] [TcpConnection 0X%08x] "
+                 "GetOptions error %d %s", socket_.fd(), this->id(),
+                 concurrency::ThisThread::GetLastError(), error_string.c_str());
       closed = true;
     } else if (error == EINPROGRESS) {
       return;
     } else {
+      cnetpp::base::EndPoint ep;
+      this->socket().GetLocalEndPoint(&ep);
+      CnetppDebug("[Socket 0X%08x] [TcpConnection 0X%08x] change state "
+                  "from kConnecting to kConnected, [LocalEndPoint %s]",
+                  socket_.fd(), this->id(), ep.ToString().c_str());
       state_ = State::kConnected;
       if (connected_callback_) {
         // call callback user defined
@@ -162,6 +166,25 @@ void TcpConnection::HandleWriteableEvent(EventCenter* event_center) {
             std::static_pointer_cast<TcpConnection>(shared_from_this()));
       }
     }
+  }
+
+  if (!closed) {
+    send_lock_.Lock();
+    if (send_buffers_.empty()) {
+      send_lock_.Unlock();
+      if (state_ == State::kConnected) {
+        Command command(static_cast<int>(Command::Type::kReadable),
+            shared_from_this());
+        event_center->AddCommand(command, false);
+      } else if (state_ == State::kClosing) {
+        Command command(static_cast<int>(Command::Type::kRemoveConnImmediately),
+            shared_from_this());
+        event_center->AddCommand(command, false);
+      }
+      // do nothing
+      return;
+    }
+    send_lock_.Unlock();
   }
 
   if (state_ == State::kConnected || state_ == State::kClosing) {
@@ -225,6 +248,9 @@ void TcpConnection::HandleWriteableEvent(EventCenter* event_center) {
 }
 
 void TcpConnection::HandleCloseConnection() {
+  CnetppDebug("[Socket 0X%08x] [TcpConnection 0X%08x] "
+              "receive close event", socket_.fd(), this->id());
+
   if (state_ == State::kClosed) {
     return;
   }
@@ -237,6 +263,9 @@ void TcpConnection::HandleCloseConnection() {
 }
 
 void TcpConnection::MarkAsClosed(bool immediately) {
+  CnetppDebug("[Socket 0X%08x] [TcpConnection 0X%08x] "
+              "receive mark closed event, owing to Direct call, "
+              "AsyncClose or Poll error", socket_.fd(), this->id());
   int type = 0;
   if (immediately) {
     type = static_cast<int>(Command::Type::kRemoveConnImmediately);

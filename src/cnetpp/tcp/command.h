@@ -43,11 +43,12 @@ class Command final {
  public:
   enum class Type {
     kDummy = 0x0,
-    kAddConn = 0x1,
+    kAddConnectedConn = 0x1,
     kRemoveConn = 0x2,
     kRemoveConnImmediately = 0x4,
     kReadable = 0x8,
     kWriteable = 0x10,
+    kAddConnectingConn = 0x20,
   };
 
   Command(int type,
@@ -90,6 +91,32 @@ class Command final {
 
   int type() const {
     return type_;
+  }
+  // only used for DLOG
+  std::string TypeString() const {
+    std::string res;
+    if (type_ & static_cast<int>(Type::kAddConnectingConn)) {
+      res += "kAddConnectingConn|";
+    }
+    if (type_ & static_cast<int>(Type::kAddConnectedConn)) {
+      res += "kAddConnectedConn|";
+    }
+    if (type_ & static_cast<int>(Type::kRemoveConn)) {
+      res += "kRemoveConn|";
+    }
+    if (type_ & static_cast<int>(Type::kRemoveConnImmediately)) {
+      res += "kRemoveConnImmediately|";
+    }
+    if (type_ & static_cast<int>(Type::kReadable)) {
+      res += "kReadable|";
+    }
+    if (type_ & static_cast<int>(Type::kWriteable)) {
+      res += "kWriteable|";
+    }
+    if (res.size() > 0) {
+      res.pop_back();
+    }
+    return res;
   }
 
   std::shared_ptr<ConnectionBase> connection() const {

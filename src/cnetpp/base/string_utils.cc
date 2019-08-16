@@ -51,7 +51,7 @@ void StringUtils::LTrim(char* str) {
     return;
   }
 
-  while (*str++ = *p++) {}
+  while ((*str++ = *p++)) {}
 }
 
 void StringUtils::LTrim(std::string* str) {
@@ -65,9 +65,8 @@ std::string StringUtils::LTrim(StringPiece str) {
     p++;
   }
 
-  return std::move(
-      str.substr(p - str.data(),
-                 str.length() - (p - str.data())).as_string());
+  return str.substr(p - str.data(),
+      str.length() - (p - str.data())).as_string();
 }
 
 void StringUtils::LTrim(StringPiece str, std::string* result) {
@@ -108,7 +107,7 @@ std::string StringUtils::RTrim(StringPiece str) {
 
 void StringUtils::RTrim(StringPiece str, std::string* result) {
   assert(result);
-  *result = std::move(RTrim(str));
+  *result = RTrim(str);
 }
 
 void StringUtils::Trim(char* str) {
@@ -118,7 +117,7 @@ void StringUtils::Trim(char* str) {
 
 void StringUtils::Trim(std::string* str) {
   assert(str);
-  *str = std::move(Trim(*str));
+  *str = Trim(*str);
 }
 
 std::string StringUtils::Trim(StringPiece str) {
@@ -138,7 +137,7 @@ std::string StringUtils::Trim(StringPiece str) {
 
 void StringUtils::Trim(StringPiece str, std::string* result) {
   assert(result);
-  *result = std::move(Trim(str));
+  *result = Trim(str);
 }
 
 void StringUtils::ToUpper(char* str) {
@@ -160,14 +159,14 @@ void StringUtils::ToUpper(std::string* str) {
 }
 
 std::string StringUtils::ToUpper(StringPiece str) {
-  std::string dst_str = std::move(str.as_string());
+  std::string dst_str = str.as_string();
   ToUpper(&dst_str);
-  return std::move(dst_str);
+  return dst_str;
 }
 
 void StringUtils::ToUpper(StringPiece str, std::string* result) {
   assert(result);
-  *result = std::move(ToUpper(str));
+  *result = ToUpper(str);
 }
 
 void StringUtils::ToLower(char* str) {
@@ -190,21 +189,21 @@ void StringUtils::ToLower(std::string* str) {
 }
 
 std::string StringUtils::ToLower(StringPiece str) {
-  std::string dst_str = std::move(str.as_string());
+  std::string dst_str = str.as_string();
   ToLower(&dst_str);
-  return std::move(dst_str);
+  return dst_str;
 }
 
 void StringUtils::ToLower(StringPiece str, std::string* result) {
   assert(result);
-  *result = std::move(ToLower(str));
+  *result = ToLower(str);
 }
 
 std::vector<std::string> StringUtils::SplitByChars(StringPiece str,
                                                    StringPiece separators) {
   std::vector<std::string> sub_strs;
   SplitByChars(str, separators, &sub_strs);
-  return std::move(sub_strs);
+  return sub_strs;
 }
 
 void StringUtils::SplitByChars(StringPiece str,
@@ -213,7 +212,7 @@ void StringUtils::SplitByChars(StringPiece str,
   assert(result);
   result->clear();
   if (str.empty() || separators.empty()) {
-    result->push_back(std::move(str.as_string()));
+    result->emplace_back(str.as_string());
     return;
   }
 
@@ -222,24 +221,25 @@ void StringUtils::SplitByChars(StringPiece str,
     map[static_cast<size_t>(*itr)] = true;
   }
 
-  const char* head = str.data();
-  const char* tail = head;
-  while (*head) {
-    while (*head && map[static_cast<size_t>(*head)]) {
+  int head = 0;
+  int tail = 0;
+  while (static_cast<size_t>(head) < str.length()) {
+    while (static_cast<size_t>(head) < str.length() &&
+        map[static_cast<size_t>(str[head])]) {
       head++;
     }
 
-    if (!*head) {
+    if ((size_t)head >= str.length()) {
       return;
     }
 
     tail = head + 1;
-    while (*tail && !map[static_cast<size_t>(*tail)]) {
+    while ((size_t)tail < str.length() &&
+        !map[static_cast<size_t>(str[tail])]) {
       tail++;
     }
 
-    std::string tmp_str(head, tail - head);
-    result->push_back(std::move(tmp_str));
+    result->push_back(std::string(str.data() + head, tail - head));
     head = tail;
   }
 }
@@ -249,7 +249,7 @@ std::vector<std::string> StringUtils::SplitByString(
     StringPiece separator) {
   std::vector<std::string> sub_strs;
   SplitByString(str, separator, &sub_strs);
-  return std::move(sub_strs);
+  return sub_strs;
 }
 
 void StringUtils::SplitByString(StringPiece str,
@@ -257,7 +257,7 @@ void StringUtils::SplitByString(StringPiece str,
                                 std::vector<std::string>* result) {
   assert(result);
   if (str.empty() || separator.empty()) {
-    result->push_back(std::move(str.as_string()));
+    result->emplace_back(str.as_string());
     return;
   }
 
@@ -336,7 +336,7 @@ int StringUtils::ParseVarint32(StringPiece str, uint32_t* value) {
         }
         *value |= (tmp = str[4]) << 28;
         if (tmp < 0) {
-          for (int i = 0; i < 5; i++) {
+          for (size_t i = 0; i < 5; i++) {
             if (str.size() < i + 6) {
               return 0;
             }
@@ -365,8 +365,8 @@ int StringUtils::ToVarint32(uint32_t value, char* buf) {
 }
 
 bool StringUtils::IsHexDigit(char c) {
-  if ((c >= '0' && c <= '9') || 
-      (c >= 'a' && c <= 'f') || 
+  if ((c >= '0' && c <= '9') ||
+      (c >= 'a' && c <= 'f') ||
       (c >= 'A' && c <= 'F')) {
     return true;
   }
@@ -397,20 +397,20 @@ char StringUtils::IntToHexChar(int i) {
 bool StringUtils::IsUriChar(char c) {
   switch (c) {
   // unreserved
-  case '0': case '1': case '2': case '3': case '4': case '5': case '6': 
+  case '0': case '1': case '2': case '3': case '4': case '5': case '6':
   case '7': case '8': case '9':
-  case 'a': case 'b': case 'c': case 'd': case 'e': case 'f': case 'g': 
-  case 'h': case 'i': case 'j': case 'k': case 'l': case 'm': case 'n': 
-  case 'o': case 'p': case 'q': case 'r': case 's': case 't': case 'u': 
+  case 'a': case 'b': case 'c': case 'd': case 'e': case 'f': case 'g':
+  case 'h': case 'i': case 'j': case 'k': case 'l': case 'm': case 'n':
+  case 'o': case 'p': case 'q': case 'r': case 's': case 't': case 'u':
   case 'v': case 'w': case 'x': case 'y': case 'z':
-  case 'A': case 'B': case 'C': case 'D': case 'E': case 'F': case 'G': 
-  case 'H': case 'I': case 'J': case 'K': case 'L': case 'M': case 'N': 
-  case 'O': case 'P': case 'Q': case 'R': case 'S': case 'T': case 'U': 
+  case 'A': case 'B': case 'C': case 'D': case 'E': case 'F': case 'G':
+  case 'H': case 'I': case 'J': case 'K': case 'L': case 'M': case 'N':
+  case 'O': case 'P': case 'Q': case 'R': case 'S': case 'T': case 'U':
   case 'V': case 'W': case 'X': case 'Y': case 'Z':
-  case '-': case '.': case '_': case '~': 
+  case '-': case '.': case '_': case '~':
   // reserved
-  case '!': case '*': case '\'': case '(': case ')': case ';': case ':': 
-  case '@': case '&': case '=': case '+': case '$': case ',': case '/': 
+  case '!': case '*': case '\'': case '(': case ')': case ';': case ':':
+  case '@': case '&': case '=': case '+': case '$': case ',': case '/':
   case '?': case '#': case '[': case ']':
     return true;
   default:
@@ -423,7 +423,7 @@ int64_t StringUtils::HexStrToInteger(StringPiece str, bool* success) {
   int64_t i = 0;
   bool succ = false;
 
-  if (str.length() > 2 && str[0] == '0' && 
+  if (str.length() > 2 && str[0] == '0' &&
       (str[1] == 'x' || str[1] == 'X')) {
     index = str.data() + 2;
   }
@@ -454,6 +454,37 @@ int64_t StringUtils::HexStrToInteger(StringPiece str, bool* success) {
   return i;
 }
 
+std::string StringUtils::UnEscape(const std::string &url) {
+  char decode_buf[3];
+  std::string result;
+  result.reserve(url.size());
+
+  for (std::size_t pos = 0; pos < url.size(); ++pos) {
+    switch (url[pos]) {
+      case '+':
+        // convert to space character
+        result += ' ';
+        break;
+      case '%':
+        // decode hexidecimal value
+        if (pos + 2 < url.size()) {
+          decode_buf[0] = url[++pos];
+          decode_buf[1] = url[++pos];
+          decode_buf[2] = '\0';
+          result += static_cast<char>(strtol(decode_buf, nullptr, 16));
+        } else {
+          // recover from error by not decoding character
+          result += '%';
+        }
+        break;
+      default:
+        // character does not need to be escaped
+        result += url[pos];
+    }
+  }
+  return result;
+}
+
 void StringUtils::Escape(std::string* str) {
   std::string result;
   result = Escape(*str);
@@ -474,19 +505,19 @@ std::string StringUtils::Escape(StringPiece str) {
       esc_str += buffer;
     }
   }
-  return std::move(esc_str);
+  return esc_str;
 }
 
 void StringUtils::Escape(StringPiece str, std::string* result) {
   assert(result);
-  *result = std::move(Escape(str));
+  *result = Escape(str);
 }
 
 std::string StringUtils::CodePointToUtf8(int32_t unicode_code_point) {
   std::string res;
   if (unicode_code_point < 0x0 || unicode_code_point > 0x10FFFF)
     return res;
-  
+
   if (unicode_code_point <= 0x7F) {
     res.resize(1);
     res[0] = static_cast<char>(unicode_code_point);
@@ -559,9 +590,9 @@ int32_t StringUtils::Utf8ToCodePoint(const char*& utf8_str) {
         auto l4 = static_cast<uint32_t>(*(utf8_str + 3)) & 0xFF;
         if ((l4 >> 6) == 0x02) {
           utf8_str += 4;
-          return ((l1 & 0x07) << 18) | 
-                  ((l2 & 0x3F) << 12) | 
-                  ((l3 & 0x3F) << 6) | 
+          return ((l1 & 0x07) << 18) |
+                  ((l2 & 0x3F) << 12) |
+                  ((l3 & 0x3F) << 6) |
                   (l4 & 0x3F);
         }
         return l4_error(l4);

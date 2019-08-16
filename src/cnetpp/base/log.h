@@ -30,6 +30,7 @@
 #include <stdint.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <string>
 
 namespace cnetpp {
 namespace base {
@@ -44,38 +45,48 @@ class Log {
     kFatal,
   };
 
-  Log() : func_(&DefaultFunc) {
-  }
+  Log() : func_(&DefaultFunc), level_(Level::kDebug) {}
 
   inline void set_func(void (*func)(Level level, const char*)) {
     func_ = func;
   }
 
+  void set_level(Log::Level level) {
+    level_ = level;
+  }
+
+  Log::Level get_level() const { return level_; }
+
   inline void Debug(const char* fmt, ...) {
+    if (level_ < Level::kDebug) return;
     va_list ap;
     va_start(ap, fmt);
     VPrintf(Level::kDebug, fmt, ap);
     va_end(ap);
   }
   inline void Info(const char* fmt, ...) {
+    if (level_ < Level::kInfo) return;
     va_list ap;
     va_start(ap, fmt);
     VPrintf(Level::kInfo, fmt, ap);
     va_end(ap);
   }
   inline void Warn(const char* fmt, ...) {
+    if (level_ < Level::kWarn) return;
     va_list ap;
     va_start(ap, fmt);
     VPrintf(Level::kWarn, fmt, ap);
     va_end(ap);
   }
   inline void Error(const char* fmt, ...) {
+    if (level_ < Level::kError) return;
     va_list ap;
     va_start(ap, fmt);
     VPrintf(Level::kError, fmt, ap);
     va_end(ap);
   }
   inline void Fatal(const char* fmt, ...) {
+    if (level_ < Level::kFatal) return;
     va_list ap;
     va_start(ap, fmt);
     VPrintf(Level::kFatal, fmt, ap);
@@ -83,6 +94,7 @@ class Log {
   }
 
   static void DefaultFunc(Level level, const char* msg);
+  static void DefaultEmptyFunc(Level level, const char* msg);
 
  private:
   void VPrintf(Level level, const char* fmt, va_list ap);
@@ -90,25 +102,31 @@ class Log {
   static int FormatTime(char* buffer, size_t size);
 
   void (*func_)(Level level, const char*);
+  Log::Level level_;
 };
 
 extern Log LOG;
 
-#define Debug(fmt, ...) \
+#ifdef NDEBUG
+#define CnetppDebug(fmt, ...)
+#else
+#define CnetppDebug(fmt, ...) \
   cnetpp::base::LOG.Debug(" %s:%d] " fmt, __FILE__, __LINE__, ##__VA_ARGS__);
+#endif
 
-#define Info(fmt, ...) \
+#define CnetppInfo(fmt, ...) \
   cnetpp::base::LOG.Info(" %s:%d] " fmt, __FILE__, __LINE__, ##__VA_ARGS__);
 
-#define Warn(fmt, ...) \
+#define CnetppWarn(fmt, ...) \
   cnetpp::base::LOG.Warn(" %s:%d] " fmt, __FILE__, __LINE__, ##__VA_ARGS__);
 
-#define Error(fmt, ...) \
+#define CnetppError(fmt, ...) \
   cnetpp::base::LOG.Error(" %s:%d] " fmt, __FILE__, __LINE__, ##__VA_ARGS__);
 
-#define Fatal(fmt, ...) \
+#define CnetppFatal(fmt, ...) \
   cnetpp::base::LOG.Fatal(" %s:%d] " fmt, __FILE__, __LINE__, ##__VA_ARGS__);
 
+extern std::string BacktraceString(int skip = 1);
 }  // namespace base
 
 }  // namespace cnetpp
