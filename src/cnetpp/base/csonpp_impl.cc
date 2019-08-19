@@ -534,6 +534,16 @@ void Value::Append(const std::string& key, int16_t value) {
   object_[key] = value;
 }
 
+void Value::Append(std::string&& key, int16_t value) {
+  assert(type_ == ValueType::kObject);
+  object_[std::move(key)] = value;
+}
+
+void Value::Append(const std::string& key, uint16_t value) {
+  assert(type_ == ValueType::kObject);
+  object_[key] = value;
+}
+
 void Value::Append(std::string&& key, uint16_t value) {
   assert(type_ == ValueType::kObject);
   object_[std::move(key)] = value;

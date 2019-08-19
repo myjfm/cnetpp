@@ -211,6 +211,8 @@ class Value {
   void Append(const std::string& key, uint8_t value);
   void Append(std::string&& key, uint8_t value);
   void Append(const std::string& key, int16_t value);
+  void Append(std::string&& key, int16_t value);
+  void Append(const std::string& key, uint16_t value);
   void Append(std::string&& key, uint16_t value);
   void Append(const std::string& key, int32_t value);
   void Append(std::string&& key, int32_t value);
